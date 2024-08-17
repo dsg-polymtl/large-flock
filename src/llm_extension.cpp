@@ -8,58 +8,9 @@
 #include "duckdb/main/extension_util.hpp"
 #include <duckdb/parser/parsed_data/create_scalar_function_info.hpp>
 
-#include "openai.hpp"
+#include <utils/utils.h>
 
-// Function to get response from OpenAI
-std::string GetOpenAIResponse(const std::string &prompt)
-{
-    // Start OpenAI with the environment variable API key
-    openai::start();
-
-    // Create a JSON request payload
-    nlohmann::json request_payload = {
-        {"model", "gpt-3.5-turbo-instruct"},
-        {"prompt", prompt},
-        {"max_tokens", 15},
-        {"temperature", 0}};
-
-    // Make a request to the OpenAI API
-    auto completion = openai::completion().create(request_payload);
-
-    // Extract the text from the response
-    std::string response_text = completion["choices"][0]["text"].get<std::string>();
-
-    // Trim leading newlines
-    response_text.erase(0, response_text.find_first_not_of("\n"));
-
-    return response_text;
-}
-std::string replace_placeholders(const std::string &template_str, const std::vector<std::string> &args)
-{
-    std::stringstream ss;
-    size_t pos = 0, arg_idx = 0;
-
-    while (pos < template_str.size() && arg_idx < args.size())
-    {
-        size_t start = template_str.find("{{", pos);
-        if (start == std::string::npos)
-        {
-            ss << template_str.substr(pos);
-            break;
-        }
-        size_t end = template_str.find("}}", start);
-        if (end == std::string::npos)
-        {
-            ss << template_str.substr(pos);
-            break;
-        }
-
-        ss << template_str.substr(pos, start - pos) << args[arg_idx++];
-        pos = end + 2;
-    }
-    ss << template_str.substr(pos);
-    return ss.str();
-}
+// #include <inja.hpp>
 
 namespace duckdb
 {
@@ -78,35 +29,88 @@ namespace duckdb
 
     inline void LlmMapScalarFun(DataChunk &args, ExpressionState &state, Vector &result)
     {
+        if (args.ColumnCount() < 2)
+        {
+            throw InvalidInputException("llm_map requires at least two arguments: the template and at least one data column.");
+        }
+
+        // The first argument should be the prompt template (string)
+        if (args.data[0].GetType() != LogicalType::VARCHAR)
+        {
+            throw InvalidInputException("The first argument must be a prompt template.");
+        }
+
         auto &template_vector = args.data[0];
         std::vector<std::reference_wrapper<Vector>> args_vector;
+
         for (size_t i = 1; i < args.ColumnCount(); ++i)
         {
             args_vector.push_back(std::ref(args.data[i]));
         }
 
-        size_t index = 0;
+        // Construct the combined prompt
+        std::string combined_prompt;
+        combined_prompt = "You are an AI assistant. You have been asked to provide responses to the following prompts respectively:\n\n";
+        for (size_t i = 0; i < args.size(); ++i)
+        {
+            std::string template_str = template_vector.GetValue(i).ToString();
+            std::vector<std::string> params;
+            for (auto &arg_ref : args_vector)
+            {
+                Vector &arg = arg_ref.get();
+                auto value = arg.GetValue(i).ToString();
+                params.push_back(value);
+            }
+            combined_prompt += "Prompt " + std::to_string(i + 1) + ": " + replace_placeholders(template_str, params) + "\n";
+        }
 
+        // Send the combined prompt to OpenAI API
+        std::string response_text;
+        try
+        {
+            response_text = GetOpenAIResponse(combined_prompt); // Function to call OpenAI API
+        }
+        catch (const std::exception &e)
+        {
+            throw InvalidInputException("Failed to get response from OpenAI API: " + std::string(e.what()));
+        }
+
+        // Parse the response
+        std::vector<std::string> parsed_responses = ParseApiResponse(response_text, args.size());
+
+        // Store the results
+        size_t index = 0;
         UnaryExecutor::Execute<string_t, string_t>(
             args_vector[0], result, args.size(),
             [&](string_t _)
             {
-                std::string template_str = template_vector.GetValue(index).ToString();
-                std::vector<std::string> params;
-                for (auto &arg_ref : args_vector)
-                {
-                    Vector &arg = arg_ref.get();
-                    auto value = arg.GetValue(index).ToString();
-                    params.push_back(value);
-                }
-                std::string prompt = replace_placeholders(template_str, params);
-
-                std::string response_text = GetOpenAIResponse(prompt);
-
+                std::string response = parsed_responses[index];
                 index++;
-
-                return StringVector::AddString(result, response_text);
+                return StringVector::AddString(result, response);
             });
+    }
+
+    inline void LlmSummarizeScalarFun(DataChunk &args, ExpressionState &state, Vector &result)
+    {
+        // Initialize a template string for summarization
+        string summarize_template = "summarize this sentence: {{}}";
+        auto &text_vector = args.data[0];
+
+        // Prepare a new DataChunk
+        DataChunk new_chunk;
+        vector<LogicalType> types = {LogicalType::VARCHAR, LogicalType::VARCHAR};
+        Allocator allocator; // Create an allocator instance
+        new_chunk.Initialize(allocator, types);
+
+        // Set the summarization template in the first column
+        for (idx_t i = 0; i < args.size(); i++)
+        {
+            new_chunk.SetValue(0, i, summarize_template);
+            new_chunk.SetValue(1, i, text_vector.GetValue(i).ToString());
+        }
+
+        // Call LlmMapScalarFun using the new chunk
+        LlmMapScalarFun(new_chunk, state, result);
     }
 
     static void LoadInternal(DatabaseInstance &instance)
@@ -115,8 +119,12 @@ namespace duckdb
         auto llm_scalar_function = ScalarFunction("llm", {LogicalType::VARCHAR}, LogicalType::VARCHAR, LlmScalarFun);
         ExtensionUtil::RegisterFunction(instance, llm_scalar_function);
 
-        auto llm_map_scalar_function = ScalarFunction("llm_map", {LogicalType::VARCHAR, LogicalType::VARCHAR}, LogicalType::VARCHAR, LlmMapScalarFun);
+        auto llm_map_scalar_function = ScalarFunction("llm_map", {LogicalType::VARCHAR}, LogicalType::VARCHAR, LlmMapScalarFun);
+        llm_map_scalar_function.varargs = LogicalType::ANY;
         ExtensionUtil::RegisterFunction(instance, llm_map_scalar_function);
+
+        auto llm_summarize_function = ScalarFunction("llm_summarize", {LogicalType::VARCHAR}, LogicalType::VARCHAR, LlmSummarizeScalarFun);
+        ExtensionUtil::RegisterFunction(instance, llm_summarize_function);
     }
 
     void LlmExtension::Load(DuckDB &db)
