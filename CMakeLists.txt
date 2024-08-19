@@ -20,10 +20,10 @@ include_directories(src/include)
 # Define the source files
 set(EXTENSION_SOURCES
     src/llm_extension.cpp
-    src/utils/openai_utils.cpp
     src/utils/response_utils.cpp
     src/utils/template_utils.cpp
     src/utils/validation_utils.cpp
+    src/utils/litellm.cpp
 )
 # Build the DuckDB static and loadable extensions
 build_static_extension(${TARGET_NAME} ${EXTENSION_SOURCES})

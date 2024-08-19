@@ -5,9 +5,9 @@
 #include <regex>
 #include <duckdb.hpp>
 
-#include "openai_utils.h"
 #include "validation_utils.h"
 #include "template_utils.h"
+#include "litellm.h"
 #include <duckdb.hpp>
 
 namespace duckdb

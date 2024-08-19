@@ -38,6 +38,7 @@ namespace duckdb
         return env.render(prompt_template, context);
     }
 
+    // TODO: change replace placeholders with another one that uses INJA instead
     inja::json CreatePromptContext(DataChunk &args, size_t start_index, size_t end_index, const std::vector<std::reference_wrapper<Vector>> &args_vector)
     {
         inja::json context;

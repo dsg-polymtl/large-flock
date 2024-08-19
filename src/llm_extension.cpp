@@ -7,10 +7,10 @@
 #include "duckdb/function/scalar_function.hpp"
 #include "duckdb/main/extension_util.hpp"
 #include "duckdb/parser/parsed_data/create_scalar_function_info.hpp"
-#include "utils/openai_utils.h"
 #include "utils/validation_utils.h"
 #include "utils/template_utils.h"
 #include "utils/response_utils.h"
+#include "utils/litellm.h"
 namespace duckdb
 {
 
@@ -21,7 +21,7 @@ namespace duckdb
             prompt_vector, result, args.size(),
             [&](string_t prompt)
             {
-                std::string response_text = GetOpenAIResponse(prompt.GetString());
+                std::string response_text = litellm(prompt.GetString());
                 return StringVector::AddString(result, response_text);
             });
     }

@@ -38,11 +38,11 @@ namespace duckdb
         std::string response_text;
         try
         {
-            response_text = GetOpenAIResponse(combined_prompt);
+            response_text = litellm(combined_prompt);
         }
         catch (const std::exception &e)
         {
-            throw std::runtime_error("Failed to get response from OpenAI API: " + std::string(e.what()));
+            throw std::runtime_error("Failed to get response from litellm: " + std::string(e.what()));
         }
 
         return ParseApiResponse(response_text, num_responses);
