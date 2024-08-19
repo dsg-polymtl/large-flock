@@ -4,7 +4,7 @@
 #include <iostream>
 #include <string>
 #include <curl/curl.h>
-#include <dependencies/json.hpp> // Include the JSON library
+#include <nlohmann/json.hpp>
 #include <duckdb.hpp>
 
 namespace duckdb

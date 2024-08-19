@@ -2,7 +2,7 @@
 
 #include <string>
 #include <vector>
-#include <dependencies/inja.hpp>
+#include <inja/inja.hpp>
 #include <sstream>
 
 #include <duckdb.hpp>
