@@ -36,6 +36,7 @@ namespace duckdb
         }
     }
 
+    // TODO: strong method to calculate the number of tokens
     size_t CalculateTotalTokens(DataChunk &args)
     {
         // 1. Calculate tokens for the template
@@ -50,6 +51,7 @@ namespace duckdb
         return total_tokens;
     }
 
+    // TODO: Improve the chank size calculation instead of this naive one
     size_t DetermineChunkSize(DataChunk &args)
     {
         int context_size = 4191;
