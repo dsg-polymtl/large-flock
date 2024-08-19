@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.5)
 
 # Set extension name here
 set(TARGET_NAME llm)
+set(CMAKE_CXX_STANDARD 17)
+
 
 # DuckDB's extension distribution supports vcpkg. As such, dependencies can be added in ./vcpkg.json and then
 # used in cmake with find_package. Feel free to remove or replace with other dependencies.
@@ -14,14 +16,15 @@ project(${TARGET_NAME})
 
 # Include directories
 include_directories(src/include)
-include_directories(src/utils)
 
 # Define the source files
 set(EXTENSION_SOURCES
     src/llm_extension.cpp
-    src/utils/utils.cpp
+    src/utils/openai_utils.cpp
+    src/utils/response_utils.cpp
+    src/utils/template_utils.cpp
+    src/utils/validation_utils.cpp
 )
-
 # Build the DuckDB static and loadable extensions
 build_static_extension(${TARGET_NAME} ${EXTENSION_SOURCES})
 build_loadable_extension(${TARGET_NAME} " " ${EXTENSION_SOURCES})
@@ -32,8 +35,8 @@ install(
     EXPORT "${DUCKDB_EXPORT_SET}"
     LIBRARY DESTINATION "${INSTALL_LIB_DIR}"
     ARCHIVE DESTINATION "${INSTALL_LIB_DIR}"
-)
-
+    )
+    
 # Find and include CURL
 find_package(CURL REQUIRED)
 include_directories(${CURL_INCLUDE_DIRS})
