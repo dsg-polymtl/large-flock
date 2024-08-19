@@ -1,0 +1,9 @@
+You are an AI assistant. You have been asked to provide responses to the following prompts respectively:
+
+{% for prompt in prompts %}
+Prompt {{ prompt.number }}: {{ prompt.prompt }}
+{% endfor %}
+
+The response should be in the next format
+
+Response <Prompt number>: //Your response here

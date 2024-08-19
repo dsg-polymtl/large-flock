@@ -43,7 +43,7 @@
 #include "curl/curl.h"
 #endif
 
-#include <nlohmann/json.hpp>  // nlohmann/json
+#include <dependencies/json.hpp> 
 
 namespace openai {
 
