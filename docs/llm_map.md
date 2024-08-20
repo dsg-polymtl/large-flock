@@ -63,6 +63,6 @@ Given a table `students` with a column `email`, you can use `llm_map` to validat
 
 ## Notes
 
-- Ensure you have valid API credentials set up in your environment for the OpenAI API.
+- Ensure the execution of the `litellm` server.
 - The `llm_map` function supports only a single column as input. The template's placeholder will be replaced by values from this column.
 - Adjust the `template` parameter according to the desired output format.
