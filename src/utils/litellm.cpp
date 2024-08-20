@@ -1,6 +1,5 @@
 #include "utils/litellm.h"
 #include "duckdb.hpp"
-
 namespace duckdb
 {
     // Function to handle the response data from the server
