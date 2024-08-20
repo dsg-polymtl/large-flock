@@ -48,21 +48,15 @@ namespace duckdb
         return ParseApiResponse(response_text, num_responses);
     }
 
-    std::vector<std::string> ChunkAndSendRequests(DataChunk &args)
+    std::vector<std::string> ChunkAndSendRequests(KeyValueMap &data_map, size_t size)
     {
         std::vector<std::string> all_responses;
-        std::vector<std::reference_wrapper<Vector>> args_vector;
 
         // Determine chunk size based on context window and other factors
 
-        size_t chunk_size = DetermineChunkSize(args);
+        size_t chunk_size = DetermineChunkSize(data_map);
 
-        for (size_t i = 1; i < args.ColumnCount(); ++i)
-        {
-            args_vector.push_back(std::ref(args.data[i]));
-        }
-
-        size_t total_prompts = args.size();
+        size_t total_prompts = size;
         
         size_t current_index = 0;
 
@@ -71,7 +65,7 @@ namespace duckdb
             size_t end_index = std::min(current_index + chunk_size, total_prompts);
 
             // Create the prompt context
-            inja::json context = CreatePromptContext(args, current_index, end_index, args_vector);
+            inja::json context = CreatePromptContext(data_map, current_index, end_index);
 
             // Generate the combined prompt
             std::string combined_prompt = GenerateCombinedPrompt(context);
