@@ -51,7 +51,7 @@ void CoreScalarFunctions::RegisterLlmMapScalarFunction(DatabaseInstance& db)
 {
 	ExtensionUtil::RegisterFunction(
 		db,
-		ScalarFunction("llm_map", {}, LogicalType::VARCHAR, LlmMapScalarFunction, nullptr, nullptr, nullptr, nullptr, LogicalType::VARCHAR));
+		ScalarFunction("llm_map", {}, LogicalType::VARCHAR, LlmMapScalarFunction, nullptr, nullptr, nullptr, nullptr, LogicalType::ANY));
 }
 
 } // namespace core

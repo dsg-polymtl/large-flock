@@ -51,8 +51,8 @@ nlohmann::json CoreScalarParsers::LlmMapScalarParser(DataChunk& args) {
 		else if (key == "max_tokens" && args.data[keys[key]].GetType() != LogicalType::INTEGER) {
 			throw std::runtime_error("LlmMapParser: max_tokens must be an integer.");
 		}
-		else if (key == "temperature" && args.data[keys[key]].GetType() != LogicalType::DOUBLE) {
-			throw std::runtime_error("LlmMapParser: temperature must be a double.");
+		else if (key == "temperature" && args.data[keys[key]].GetType() != LogicalType::DECIMAL(2,1)) {
+			throw std::runtime_error("LlmMapParser: temperature must be a decimal(2,1).");
 		}
 	};
 
