@@ -1,5 +1,5 @@
 set(EXTENSION_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/template.cpp
         ${EXTENSION_SOURCES}
-        ${CMAKE_CURRENT_SOURCE_DIR}/llm_map.cpp
         PARENT_SCOPE
     )
