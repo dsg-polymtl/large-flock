@@ -1,0 +1,5 @@
+set(EXTENSION_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/template.cpp
+        ${EXTENSION_SOURCES}
+        PARENT_SCOPE
+    )
