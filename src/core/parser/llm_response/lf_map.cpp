@@ -3,10 +3,14 @@
 #include <large_flock_extension.hpp>
 #include <regex>
 
-namespace large_flock {
-namespace core {
+namespace large_flock
+{
 
-std::vector<std::string> CoreLlmResponseParsers::LfMapResponseParser(std::string &response, int num_responses) {
+namespace core
+{
+
+std::vector<std::string> CoreLlmResponseParsers::LfMapResponseParser(std::string &response, int num_responses)
+{
     std::vector<std::string> responses;
 
     // Define the regex pattern to match "Response {i}: content"
@@ -17,8 +21,10 @@ std::vector<std::string> CoreLlmResponseParsers::LfMapResponseParser(std::string
     auto end = response.cend();
 
     // Iterate over all matches
-    while (std::regex_search(it, end, match, response_pattern)) {
-        if (match.size() == 3) { // Match group 1 is the index, group 2 is the content
+    while (std::regex_search(it, end, match, response_pattern))
+    {
+        if (match.size() == 3)
+        { // Match group 1 is the index, group 2 is the content
             std::string content = match[2].str();
             responses.push_back(content);
         }
@@ -26,7 +32,8 @@ std::vector<std::string> CoreLlmResponseParsers::LfMapResponseParser(std::string
     }
 
     // Ensure we have exactly the number of responses expected
-    if (responses.size() < num_responses) {
+    if (responses.size() < num_responses)
+    {
         responses.resize(num_responses,
                          ""); // Fill missing responses with empty strings
     }
@@ -35,4 +42,5 @@ std::vector<std::string> CoreLlmResponseParsers::LfMapResponseParser(std::string
 }
 
 } // namespace core
+
 } // namespace large_flock

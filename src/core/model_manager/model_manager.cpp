@@ -3,17 +3,22 @@
 #include <large_flock/core/model_manager/openai.hpp>
 #include <large_flock_extension.hpp>
 
-namespace large_flock {
-namespace core {
+namespace large_flock
+{
+
+namespace core
+{
 
 std::string ModelManager::CallComplete(const std::string &prompt, const std::string &model, const int &max_tokens,
-                                       const float &temperature) {
+                                       const float &temperature)
+{
     // List of supported models
     static const std::unordered_set<std::string> supported_models = {"gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4",
                                                                      "gpt-3.5-turbo"};
 
     // Check if the provided model is in the list of supported models
-    if (supported_models.find(model) == supported_models.end()) {
+    if (supported_models.find(model) == supported_models.end())
+    {
         throw std::invalid_argument("Model '" + model +
                                     "' is not supported. Please choose one from the supported list: "
                                     "gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-4, gpt-3.5-turbo.");
@@ -21,9 +26,12 @@ std::string ModelManager::CallComplete(const std::string &prompt, const std::str
 
     // Get API key from the environment variable
     const char *key = std::getenv("OPENAI_API_KEY");
-    if (!key) {
+    if (!key)
+    {
         throw std::runtime_error("OPENAI_API_KEY environment variable is not set.");
-    } else {
+    }
+    else
+    {
         openai::start(); // Assume it uses the environment variable if no API
                          // key is provided
     }
@@ -47,4 +55,5 @@ std::string ModelManager::CallComplete(const std::string &prompt, const std::str
 }
 
 } // namespace core
+
 } // namespace large_flock

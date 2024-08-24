@@ -7,21 +7,27 @@
 #include <large_flock_extension.hpp>
 #include <nlohmann/json.hpp>
 
-namespace large_flock {
-namespace core {
+namespace large_flock
+{
 
-inline std::string ConstructPrompt(DataChunk &args, const nlohmann::json &args_idx) {
+namespace core
+{
+
+inline std::string ConstructPrompt(DataChunk &args, const nlohmann::json &args_idx)
+{
     inja::Environment env;
 
     // get the template string
     auto template_str = args.data[args_idx["template"]].GetValue(0).ToString();
 
     std::string filled_template = "";
-    for (idx_t i = 0; i < args.size(); i++) {
+    for (idx_t i = 0; i < args.size(); i++)
+    {
         nlohmann::json *params = new nlohmann::json;
 
         // get the inputs from the args and store in the params
-        for (const auto &el : args_idx["inputs"].items()) {
+        for (const auto &el : args_idx["inputs"].items())
+        {
             std::string key = el.key();
             idx_t idx = el.value();
             (*params)[key] = args.data[idx].GetValue(i).ToString();
@@ -32,12 +38,13 @@ inline std::string ConstructPrompt(DataChunk &args, const nlohmann::json &args_i
         delete params;
     }
 
-    std::string prompt = env.render_file("src/templates/lf_map/prompt_template.txt", {{"prompts", filled_template}});
+    std::string prompt = env.render_file("src/templates/lf_map_template.txt", {{"prompts", filled_template}});
 
     return prompt;
 }
 
-static void LfMapScalarFunction(DataChunk &args, ExpressionState &state, Vector &result) {
+static void LfMapScalarFunction(DataChunk &args, ExpressionState &state, Vector &result)
+{
     // parse the arguments and return the args key idx pair
     auto key_idx_pair = CoreScalarParsers::LfMapScalarParser(args);
     auto prompt = ConstructPrompt(args, key_idx_pair);
@@ -66,10 +73,12 @@ static void LfMapScalarFunction(DataChunk &args, ExpressionState &state, Vector 
 //------------------------------------------------------------------------------
 // Register functions
 //------------------------------------------------------------------------------
-void CoreScalarFunctions::RegisterLfMapScalarFunction(DatabaseInstance &db) {
+void CoreScalarFunctions::RegisterLfMapScalarFunction(DatabaseInstance &db)
+{
     ExtensionUtil::RegisterFunction(db, ScalarFunction("lf_map", {}, LogicalType::VARCHAR, LfMapScalarFunction, nullptr,
                                                        nullptr, nullptr, nullptr, LogicalType::ANY));
 }
 
 } // namespace core
+
 } // namespace large_flock
