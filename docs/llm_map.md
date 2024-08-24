@@ -1,6 +1,6 @@
 # `lf_map` Function Documentation
 
-The `lf_map` function in the Large Flock DuckDB extension enables dynamic processing of data using various Large Language Models (LLMs). This function allows you to apply natural language templates to your data, which can be used for a wide range of tasks such as validation, summarization, and classification.
+The `lf_map` is a mapping function from a row in a relation to a new set of attributes that are appended to the row. It does so using an LLM call.
 
 ## Syntax
 
