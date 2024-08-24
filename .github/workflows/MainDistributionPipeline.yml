@@ -19,12 +19,12 @@ jobs:
       duckdb_version: v1.0.0
       extension_name: large_flock
 
-  duckdb-stable-deploy:
-    name: Deploy extension binaries
-    needs: duckdb-stable-build
-    uses: ./.github/workflows/_extension_deploy.yml
-    secrets: inherit
-    with:
-      duckdb_version: v1.0.0
-      extension_name: large_flock
-      deploy_latest: ${{ startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' }}
+  # duckdb-stable-deploy:
+  #   name: Deploy extension binaries
+  #   needs: duckdb-stable-build
+  #   uses: ./.github/workflows/_extension_deploy.yml
+  #   secrets: inherit
+  #   with:
+  #     duckdb_version: v1.0.0
+  #     extension_name: large_flock
+  #     deploy_latest: ${{ startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' }}
