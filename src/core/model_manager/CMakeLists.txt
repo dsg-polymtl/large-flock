@@ -1,5 +1,5 @@
 set(EXTENSION_SOURCES
         ${EXTENSION_SOURCES}
-        ${CMAKE_CURRENT_SOURCE_DIR}/openai_model.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/model_manager.cpp
         PARENT_SCOPE
     )

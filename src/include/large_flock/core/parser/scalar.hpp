@@ -2,15 +2,12 @@
 #include "large_flock/common.hpp"
 #include <nlohmann/json.hpp>
 
-namespace large_flock
-{
+namespace large_flock {
 
-namespace core
-{
+namespace core {
 
-struct CoreScalarParsers
-{
-	static nlohmann::json LlmMapScalarParser(DataChunk &args);
+struct CoreScalarParsers {
+  static nlohmann::json LfMapScalarParser(DataChunk &args);
 };
 
 } // namespace core
