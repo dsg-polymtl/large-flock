@@ -28,4 +28,6 @@ echo "vcpkg bootstrapped successfully."
 
 # Step 3: Export the VCPKG toolchain path environment variable
 export VCPKG_TOOLCHAIN_PATH=`pwd`/vcpkg/scripts/buildsystems/vcpkg.cmake
-echo "VCPKG_TOOLCHAIN_PATH is set to 
+echo "VCPKG_TOOLCHAIN_PATH is set to $VCPKG_TOOLCHAIN_PATH"
+
+echo "vcpkg setup complete."
