@@ -1,0 +1,66 @@
+# name: test/sql/lf_map.test
+# description: Test lf_map function in large_flock extension
+# group: [large_flock]
+
+# Before we load the extension, this will fail
+statement error
+SELECT lf_map('What is the capital of {{country}}?', 'gpt-4', 'country', 'Canada');
+----
+Catalog Error: Scalar Function with name lf_map does not exist!
+
+# Require statement will ensure this test is run with this extension loaded
+require large_flock
+
+# Test Case 1: Basic template replacement and lf_map response
+query I
+SELECT lf_map('What is the capital of {{country}}?', 'gpt-4', 'country', 'Canada');
+----
+<REGEX>:.*Ottawa.*
+
+# Test Case 2: Mathematical operation through lf_map
+query I
+SELECT lf_map('What is {{num1}} plus {{num2}}?', 'gpt-4', 'num1', '5', 'num2', '3');
+----
+<REGEX>:.*8.*
+
+# Test Case 3: Validation of email format
+query I
+SELECT lf_map('Is this a valid email: {{email}}?', 'gpt-4', 'email', 'user@example.com');
+----
+<REGEX>:.*valid.*
+
+# Test Case 4: Summarizing a simple text
+query I
+SELECT lf_map('Summarize: {{text}}', 'gpt-4', 'text', 'The quick brown fox jumps over the lazy dog.');
+----
+<REGEX>:.*fox.*dog.*
+
+# Test Case 5: Phone number format validation
+query I
+SELECT lf_map('Is {{phone}} a valid phone number?', 'gpt-4', 'phone', '+1-800-555-1234');
+----
+<REGEX>:.*valid.*
+
+# Test Case 6: Verifying model name handling and different LLMs
+query I
+SELECT lf_map('What is the square root of {{number}}?', 'gpt-3.5-turbo', 'number', '16');
+----
+<REGEX>:.*4.*
+
+# Test Case 7: Custom token limit in LLM response
+query I
+SELECT lf_map('What is the square root of {{number}}?', 'gpt-3.5-turbo', 'number', '16', 'lf:max_tokens', 10);
+----
+<REGEX>:.*4.*
+
+# Test Case 8: Invalid column name handling
+statement error
+SELECT lf_map('What is the capital of {{country}}?', 'gpt-4', 'city', 'canada');
+----
+Invalid Error: [inja.exception.render_error] (at 1:26) variable 'country' not found
+
+# Test Case 9: Invalid model handling
+statement error
+SELECT lf_map('What is the capital of {{country}}?', 'model-43', 'country', 'canada');
+----
+Invalid Error: Model 'model-43' is not supported. Please choose one from the supported list: gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-4, gpt-3.5-turbo.
