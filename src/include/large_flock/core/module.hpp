@@ -1,16 +1,13 @@
 #pragma once
 #include "large_flock/common.hpp"
 
-namespace large_flock
-{
+namespace large_flock {
 
-namespace core
-{
+namespace core {
 
-struct CoreModule
-{
-  public:
-    static void Register(DatabaseInstance &db);
+struct CoreModule {
+public:
+	static void Register(DatabaseInstance &db);
 };
 
 } // namespace core
