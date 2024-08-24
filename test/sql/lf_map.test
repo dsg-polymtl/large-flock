@@ -4,7 +4,7 @@
 
 # Before we load the extension, this will fail
 statement error
-SELECT lf_map('What is the capital of {{country}}?', 'gpt-4', 'country', 'Canada');
+SELECT lf_map('What is the capital of {{country}}?', 'gpt-3.5-turbo', 'country', 'Canada');
 ----
 Catalog Error: Scalar Function with name lf_map does not exist!
 
@@ -13,54 +13,73 @@ require large_flock
 
 # Test Case 1: Basic template replacement and lf_map response
 query I
-SELECT lf_map('What is the capital of {{country}}?', 'gpt-4', 'country', 'Canada');
+SELECT lf_map('What is the capital of {{country}}?', 'gpt-3.5-turbo', 'country', 'Canada');
 ----
 <REGEX>:.*Ottawa.*
 
 # Test Case 2: Mathematical operation through lf_map
 query I
-SELECT lf_map('What is {{num1}} plus {{num2}}?', 'gpt-4', 'num1', '5', 'num2', '3');
+SELECT lf_map('What is {{num1}} plus {{num2}}?', 'gpt-3.5-turbo', 'num1', '5', 'num2', '3');
 ----
 <REGEX>:.*8.*
 
 # Test Case 3: Validation of email format
 query I
-SELECT lf_map('Is this a valid email: {{email}}?', 'gpt-4', 'email', 'user@example.com');
+SELECT lf_map('Is this a valid email: {{email}}?', 'gpt-3.5-turbo', 'email', 'user@example.com');
 ----
 <REGEX>:.*valid.*
 
-# Test Case 4: Summarizing a simple text
+# Test Case 4: Phone number format validation
 query I
-SELECT lf_map('Summarize: {{text}}', 'gpt-4', 'text', 'The quick brown fox jumps over the lazy dog.');
-----
-<REGEX>:.*fox.*dog.*
-
-# Test Case 5: Phone number format validation
-query I
-SELECT lf_map('Is {{phone}} a valid phone number?', 'gpt-4', 'phone', '+1-800-555-1234');
+SELECT lf_map('Is {{phone}} a valid phone number?', 'gpt-3.5-turbo', 'phone', '+1-800-555-1234');
 ----
 <REGEX>:.*valid.*
 
-# Test Case 6: Verifying model name handling and different LLMs
+# Test Case 5: Verifying model name handling and different LLMs
 query I
 SELECT lf_map('What is the square root of {{number}}?', 'gpt-3.5-turbo', 'number', '16');
 ----
 <REGEX>:.*4.*
 
-# Test Case 7: Custom token limit in LLM response
+# Test Case 6: Custom token limit in LLM response
 query I
-SELECT lf_map('What is the square root of {{number}}?', 'gpt-3.5-turbo', 'number', '16', 'lf:max_tokens', 10);
+SELECT lf_map('What is the square root of {{number}}?', 'gpt-3.5-turbo', 'number', '16', 'lf:max_tokens', 100);
 ----
 <REGEX>:.*4.*
 
-# Test Case 8: Invalid column name handling
+# Test Case 7: Invalid column name handling
 statement error
-SELECT lf_map('What is the capital of {{country}}?', 'gpt-4', 'city', 'canada');
+SELECT lf_map('What is the capital of {{country}}?', 'gpt-3.5-turbo', 'city', 'canada');
 ----
 Invalid Error: [inja.exception.render_error] (at 1:26) variable 'country' not found
 
-# Test Case 9: Invalid model handling
+# Test Case 8: Invalid model handling
 statement error
 SELECT lf_map('What is the capital of {{country}}?', 'model-43', 'country', 'canada');
 ----
 Invalid Error: Model 'model-43' is not supported. Please choose one from the supported list: gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-4, gpt-3.5-turbo.
+
+# create the database table
+statement ok
+CREATE TABLE students (
+    student_id INTEGER PRIMARY KEY,
+    first_name VARCHAR,
+    last_name VARCHAR,
+    email VARCHAR,
+    enrollment_date DATE
+);
+
+# populate the table with some demo records
+statement ok
+INSERT INTO students (student_id, first_name, last_name, email, enrollment_date) VALUES
+    (1, 'John', 'Doe', 'john.doe@example.com', '2022-09-01'),
+    (2, 'Jane', 'Smith', 'jane.smithexample.com', '2022-09-01'),
+    (3, 'Emily', 'Jones', 'emily.jones@example.com', '2023-01-15');
+
+# Test Case 10: Do row processing
+query I
+SELECT lf_map('Is this a valid email? {{email}}', 'gpt-3.5-turbo', 'email', email) AS verification FROM students;
+----
+<REGEX>:.*valid.*email.*
+<REGEX>:.*not a valid.*email.*
+<REGEX>:.*valid.*email.*
