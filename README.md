@@ -6,21 +6,20 @@ This repository provides a DuckDB extension for integrating LLM usage, allowing 
 
 ## Table of Contents
 
-- [Large Flock Extension](#large-flock-extension)
-  - [Table of Contents](#table-of-contents)
-  - [Getting Started](#getting-started)
-    - [Clone the Repository](#clone-the-repository)
-    - [Managing Dependencies](#managing-dependencies)
-    - [Build the Extension](#build-the-extension)
-  - [Running the Extension](#running-the-extension)
-    - [Set Up Environment Variables](#set-up-environment-variables)
-    - [Start DuckDB](#start-duckdb)
-    - [Use the Extension](#use-the-extension)
-      - [Syntax](#syntax)
-      - [Parameters](#parameters)
-      - [Example Usage](#example-usage)
-  - [Running the Tests](#running-the-tests)
-  - [Installing the Deployed Binaries](#installing-the-deployed-binaries)
+- [Table of Contents](#table-of-contents)
+- [Getting Started](#getting-started)
+  - [Clone the Repository](#clone-the-repository)
+  - [Managing Dependencies](#managing-dependencies)
+  - [Build the Extension](#build-the-extension)
+- [Running the Extension](#running-the-extension)
+  - [Set Up Environment Variables](#set-up-environment-variables)
+  - [Start DuckDB](#start-duckdb)
+  - [Use the Extension](#use-the-extension)
+    - [Syntax](#syntax)
+    - [Parameters](#parameters)
+    - [Example Usage](#example-usage)
+- [Running the Tests](#running-the-tests)
+- [Installing the Deployed Binaries](#installing-the-deployed-binaries)
 
 ---
 
@@ -46,13 +45,21 @@ sh scripts/setup_vcpkg.sh
 
 ### Build the Extension
 
-To build the extension, execute:
+To build the extension, use one of the following methods:
 
-```bash
-make
-```
+1. **Using `make`:**
 
-This command generates the following binaries:
+   ```bash
+   make
+   ```
+
+2. **If `make` is not available, you can use the provided script:**
+
+   ```bash
+   sh scripts/build_project.sh
+   ```
+
+These commands generates the following binaries:
 
 - `./build/release/duckdb`: The DuckDB shell with the extension code preloaded.
 - `./build/release/test/unittest`: The test runner for DuckDB, with the extension linked.
