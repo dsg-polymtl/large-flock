@@ -31,8 +31,7 @@ find_package(CURL REQUIRED)
 find_package(inja REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 
-include_directories(${CURL_INCLUDE_DIRS})
-target_link_libraries(${EXTENSION_NAME} ${CURL_LIBRARIES})
+target_link_libraries(${EXTENSION_NAME} CURL::libcurl)
 
 target_link_libraries(${LOADABLE_EXTENSION_NAME} nlohmann_json::nlohmann_json)
 
