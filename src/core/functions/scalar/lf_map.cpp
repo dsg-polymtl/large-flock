@@ -38,7 +38,7 @@ inline std::string ConstructPrompt(DataChunk &args, const nlohmann::json &args_i
         delete params;
     }
 
-    std::string prompt = env.render_file("src/templates/lf_map_template.txt", {{"prompts", filled_template}});
+    std::string prompt = env.render_file("src/templates/lf_map/prompt_template.txt", {{"prompts", filled_template}});
 
     return prompt;
 }
