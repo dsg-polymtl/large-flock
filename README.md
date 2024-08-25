@@ -1,4 +1,4 @@
-#Large Flock Extension
+# Large Flock Extension
 
 This repository provides a DuckDB extension for integrating LLM usage, allowing you to use a scalar function that processes prompts and returns responses from an LLM models. It is based on the [DuckDB extension template](https://github.com/duckdb/extension-template).
 
@@ -6,20 +6,21 @@ This repository provides a DuckDB extension for integrating LLM usage, allowing 
 
 ## Table of Contents
 
-- [Table of Contents](#table-of-contents)
-- [Getting Started](#getting-started)
-  - [Clone the Repository](#clone-the-repository)
-  - [Managing Dependencies](#managing-dependencies)
-  - [Build the Extension](#build-the-extension)
-- [Running the Extension](#running-the-extension)
-  - [Set Up Environment Variables](#set-up-environment-variables)
-  - [Start DuckDB](#start-duckdb)
-  - [Use the Extension](#use-the-extension)
-    - [Syntax](#syntax)
-    - [Parameters](#parameters)
-    - [Example Usage](#example-usage)
-- [Running the Tests](#running-the-tests)
-- [Installing the Deployed Binaries](#installing-the-deployed-binaries)
+- [Large Flock Extension](#large-flock-extension)
+  - [Table of Contents](#table-of-contents)
+  - [Getting Started](#getting-started)
+    - [Clone the Repository](#clone-the-repository)
+    - [Managing Dependencies](#managing-dependencies)
+    - [Build the Extension](#build-the-extension)
+  - [Running the Extension](#running-the-extension)
+    - [Set Up Environment Variables](#set-up-environment-variables)
+    - [Start DuckDB](#start-duckdb)
+    - [Use the Extension](#use-the-extension)
+      - [Syntax](#syntax)
+      - [Parameters](#parameters)
+      - [Example Usage](#example-usage)
+  - [Running the Tests](#running-the-tests)
+  - [Installing the Deployed Binaries](#installing-the-deployed-binaries)
 
 ---
 

@@ -8,7 +8,7 @@ namespace large_flock {
 namespace core {
 
 struct CoreScalarParsers {
-	static nlohmann::json LfMapScalarParser(DataChunk &args);
+    static nlohmann::json LfMapScalarParser(DataChunk &args);
 };
 
 } // namespace core
