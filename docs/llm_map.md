@@ -5,7 +5,7 @@ The `lf_map` is a mapping function from a row in a relation to a new set of attr
 ## Syntax
 
 ```sql
-SELECT lf_map('template_text', 'model_name', 'input_name', column, ['lf:max_tokens', token_count], ['lf:temperature', temp_value]) AS result 
+SELECT lf_map('template_text', 'model_name', 'input_name_1', column_value_1, 'input_name_2', column_value_2, ..., 'input_name_n', column_value_n, ['lf:max_tokens', token_count], ['lf:temperature', temp_value]) AS result 
 FROM table;
 ```
 
@@ -13,17 +13,17 @@ FROM table;
 
 - **template_text** (`VARCHAR`): 
   - A string containing the text template. 
-  - Placeholders in the template are defined using the format `{{placeholder}}`, which will be replaced by actual data from the specified column.
-  
+  - Placeholders in the template are defined using the format `{{placeholder}}`, which will be replaced by actual data from the specified columns.
+
 - **model_name** (`VARCHAR`): 
   - The name of the LLM to be used.
   - Supported models include various LLMs like `gpt-4`, `gpt-4-mini`, `gpt-4-turbo`, `gpt-3.5-turbo`, or any other integrated model.
 
-- **input_name** (`VARCHAR`): 
-  - The name of the placeholder within the template that corresponds to the column values.
+- **input_name_1, input_name_2, ..., input_name_n** (`VARCHAR`): 
+  - The names of the placeholders within the template that correspond to the column values.
   
-- **column** (`VARCHAR`): 
-  - The column in the table whose values will replace the specified placeholder in the template.
+- **column_value_1, column_value_2, ..., column_value_n** (`VARCHAR`): 
+  - The columns in the table whose values will replace the specified placeholders in the template.
   
 - **lf:max_tokens** (`INTEGER`, optional): 
   - The maximum number of tokens allowed in the response. 
