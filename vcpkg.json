@@ -1,0 +1,3 @@
+{
+  "dependencies": ["nlohmann-json", "inja", "curl"]
+}

@@ -1,0 +1,5 @@
+{{prompts}}
+
+The response should be in the next format
+
+Response <Prompt number>: //Your response here
