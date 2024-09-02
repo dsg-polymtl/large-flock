@@ -21,10 +21,10 @@ static void LoadInternal(DatabaseInstance &instance) {
 }
 
 ParserExtensionParseResult duck_parse(ParserExtensionInfo *, const std::string &query) {
-    LfQueryParser lf_query_parser;
+    large_flock::core::LfQueryParser lf_query_parser;
 
     // Translate and print SQL queries for each input query
-    std::string sql_query = lf_query_parser.TranslateToSQL(query);
+    std::string sql_query = lf_query_parser.ParseQuery(query);
 
     // Parse and return the statement using DuckDB's parser
     Parser parser;

@@ -1,13 +1,32 @@
 #pragma once
 
+#include "large_flock/common.hpp"
+
 #include <memory>
 #include <string>
 #include <vector>
 
-// Base class for different query statements
+namespace large_flock {
+namespace core {
+// Enum to represent different statement types
+enum class StatementType {
+    CREATE_MODEL,
+    DELETE_MODEL,
+    UPDATE_MODEL,
+    GET_MODEL,
+	GET_ALL_MODEL,
+    CREATE_PROMPT,
+    DELETE_PROMPT,
+    UPDATE_PROMPT,
+    GET_PROMPT,
+	GET_ALL_PROMPT,
+};
+
+// Abstract base class for statements
 class QueryStatement {
 public:
     virtual ~QueryStatement() = default;
+    StatementType type;
 };
 
 // Statement for 'CREATE DUCK' command
@@ -16,16 +35,6 @@ public:
     std::string duck_string;
 };
 
-// Statement for 'CREATE MODEL' command
-class CreateModelStatement : public QueryStatement {
-public:
-    std::string model_name;
-    int max_tokens;
-};
+} // namespace core
 
-// Statement for 'CREATE PROMPT' command
-class CreatePromptStatement : public QueryStatement {
-public:
-    std::string prompt_name;
-    std::string task;
-};
+} // namespace large_flock
