@@ -1,56 +1,38 @@
 #include "large_flock/core/parser/lf_query_parser.hpp"
 
+#include "large_flock/common.hpp"
+
 #include <sstream>
 #include <stdexcept>
 
-void LfQueryParser::ParseQuery(const std::string &query) {
-    Tokenizer tokenizer(query);
-    ParseCreateCommand(tokenizer);
-}
+namespace large_flock {
 
-void LfQueryParser::ParseCreateCommand(Tokenizer &tokenizer) {
+namespace core {
+std::string LfQueryParser::ParseQuery(const std::string &query) {
+    Tokenizer tokenizer(query);
+
     Token token = tokenizer.NextToken();
-    if (token.type != TokenType::KEYWORD || token.value != "CREATE") {
-        throw std::runtime_error("Expected 'CREATE' keyword.");
+    std::string value = StringUtil::Upper(token.value);
+    if (token.type != TokenType::KEYWORD ||
+        (value != "CREATE" && value != "DELETE" && value != "UPDATE" && value != "GET")) {
+        throw std::runtime_error("Unknown keyword: " + token.value);
     }
 
     token = tokenizer.NextToken();
-    if (token.type == TokenType::KEYWORD && token.value == "DUCK") {
-        LfCreateDuckParser duck_parser;
-        duck_parser.Parse(tokenizer, statements);
-    } else if (token.type == TokenType::KEYWORD && token.value == "MODEL") {
-        LfCreateModelParser model_parser;
-        model_parser.Parse(tokenizer, statements);
-    } else if (token.type == TokenType::KEYWORD && token.value == "PROMPT") {
-        LfCreatePromptParser prompt_parser;
-        prompt_parser.Parse(tokenizer, statements);
+    value = StringUtil::Upper(token.value);
+    if (token.type == TokenType::KEYWORD && value == "MODEL") {
+        LfModelParser model_parser;
+        model_parser.Parse(query, statement);
+        return model_parser.ToSQL(*statement);
+    } else if (token.type == TokenType::KEYWORD && value == "PROMPT") {
+        LfPromptParser prompt_parser;
+        prompt_parser.Parse(query, statement);
+        return prompt_parser.ToSQL(*statement);
     } else {
-        throw std::runtime_error("Unknown command after 'CREATE'.");
+        throw std::runtime_error("Unknown keyword: " + token.value);
     }
 }
 
-std::string LfQueryParser::TranslateToSQL(const std::string &query) {
-    // Clear previous statements
-    statements.clear();
+} // namespace core
 
-    // Parse the input query
-    ParseQuery(query);
-
-    // Generate SQL for each parsed statement
-    std::ostringstream sql_queries;
-    for (const auto &stmt : statements) {
-        if (const auto *duck_stmt = dynamic_cast<const CreateDuckStatement *>(stmt.get())) {
-            sql_queries << "SELECT '" << duck_stmt->duck_string << "' AS duck_says;\n";
-        } else if (const auto *model_stmt = dynamic_cast<const CreateModelStatement *>(stmt.get())) {
-            sql_queries << "INSERT INTO models (model_name, max_tokens) VALUES ('" << model_stmt->model_name << "', "
-                        << model_stmt->max_tokens << ");\n";
-        } else if (const auto *prompt_stmt = dynamic_cast<const CreatePromptStatement *>(stmt.get())) {
-            sql_queries << "INSERT INTO prompts (prompt_name, task) VALUES ('" << prompt_stmt->prompt_name << "', '"
-                        << prompt_stmt->task << "');\n";
-        } else {
-            throw std::runtime_error("Unknown statement type for SQL translation.");
-        }
-    }
-
-    return sql_queries.str();
-}
+} // namespace large_flock
