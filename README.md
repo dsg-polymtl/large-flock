@@ -41,7 +41,7 @@ git clone --recurse-submodules https://github.com/dsg-polymtl/large-flock.git
 DuckDB extensions use VCPKG for dependency management. Set it up by running:
 
 ```bash
-sh scripts/setup_vcpkg.sh
+source scripts/setup_vcpkg.sh
 ```
 
 ### Build the Extension

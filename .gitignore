@@ -8,3 +8,4 @@ test/python/__pycache__/
 .Rhistory
 vcpkg/
 .vscode/
+vcpkg_installed/
