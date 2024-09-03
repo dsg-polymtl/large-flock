@@ -17,7 +17,7 @@ private:
     static void ConfigPromptTable(duckdb::Connection &con, std::string &schema_name);
 };
 
-} // namespace config
+} // namespace core
 } // namespace large_flock
 
 #endif // LARGE_FLOCK_CONFIG_LF_CONFIG_HPP

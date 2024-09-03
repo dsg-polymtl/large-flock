@@ -14,12 +14,12 @@ enum class StatementType {
     DELETE_MODEL,
     UPDATE_MODEL,
     GET_MODEL,
-	GET_ALL_MODEL,
+    GET_ALL_MODEL,
     CREATE_PROMPT,
     DELETE_PROMPT,
     UPDATE_PROMPT,
     GET_PROMPT,
-	GET_ALL_PROMPT,
+    GET_ALL_PROMPT,
 };
 
 // Abstract base class for statements
