@@ -31,7 +31,7 @@ This repository provides a DuckDB extension for integrating LLM usage, allowing 
 Clone the repository with the following command:
 
 ```bash
-git clone --recurse-submodules https://github.com/dsg-polymtl/large-flock-extension.git
+git clone --recurse-submodules https://github.com/dsg-polymtl/large-flock.git
 ```
 
 > **Note:** The `--recurse-submodules` flag ensures that DuckDB is included, which is necessary for building the extension.
