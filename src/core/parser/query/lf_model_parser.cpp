@@ -77,7 +77,6 @@ void LfModelParser::ParseCreateModel(Tokenizer &tokenizer, std::unique_ptr<Query
 
     token = tokenizer.NextToken();
     if (token.type == TokenType::END_OF_FILE) {
-
         auto create_statement = std::make_unique<CreateModelStatement>();
         create_statement->model_name = model_name;
         create_statement->model = model;
@@ -202,7 +201,7 @@ std::string LfModelParser::ToSQL(const QueryStatement &statement) const {
     case StatementType::CREATE_MODEL: {
         const auto &create_stmt = static_cast<const CreateModelStatement &>(statement);
         sql << "INSERT INTO lf_config.LARGE_FLOCK_MODEL_INTERNAL_TABLE(model_name, model, max_tokens) VALUES ('"
-            << create_stmt.model_name << "', " << create_stmt.model << "', " << create_stmt.max_tokens << ");";
+            << create_stmt.model_name << "', '" << create_stmt.model << "', " << create_stmt.max_tokens << ");";
         break;
     }
     case StatementType::DELETE_MODEL: {
