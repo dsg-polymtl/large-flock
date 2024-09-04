@@ -35,7 +35,7 @@ public:
         type = StatementType::UPDATE_PROMPT;
     }
     std::string prompt_name;
-    std::string new_prompt_text;
+    std::string new_prompt;
 };
 
 class GetPromptStatement : public QueryStatement {

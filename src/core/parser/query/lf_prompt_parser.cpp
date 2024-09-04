@@ -125,7 +125,7 @@ void LfPromptParser::ParseUpdatePrompt(Tokenizer &tokenizer, std::unique_ptr<Que
     if (token.type != TokenType::STRING_LITERAL || token.value.empty()) {
         throw std::runtime_error("Expected non-empty string literal for new prompt text.");
     }
-    std::string new_prompt_text = token.value;
+    std::string new_prompt = token.value;
 
     token = tokenizer.NextToken();
     if (token.type != TokenType::PARENTHESIS || token.value != ")") {
@@ -136,7 +136,7 @@ void LfPromptParser::ParseUpdatePrompt(Tokenizer &tokenizer, std::unique_ptr<Que
     if (token.type == TokenType::END_OF_FILE) {
         auto update_statement = std::make_unique<UpdatePromptStatement>();
         update_statement->prompt_name = prompt_name;
-        update_statement->new_prompt_text = new_prompt_text;
+        update_statement->new_prompt = new_prompt;
         statement = std::move(update_statement);
     } else {
         throw std::runtime_error("Unexpected characters after the closing parenthesis. Only a semicolon is allowed.");
@@ -189,7 +189,7 @@ std::string LfPromptParser::ToSQL(const QueryStatement &statement) const {
     }
     case StatementType::UPDATE_PROMPT: {
         const auto &update_stmt = static_cast<const UpdatePromptStatement &>(statement);
-        sql << "UPDATE lf_config.LARGE_FLOCK_PROMPT_INTERNAL_TABLE SET prompt_text = '" << update_stmt.new_prompt_text
+        sql << "UPDATE lf_config.LARGE_FLOCK_PROMPT_INTERNAL_TABLE SET prompt = '" << update_stmt.new_prompt
             << "' WHERE prompt_name = '" << update_stmt.prompt_name << "';";
         break;
     }
