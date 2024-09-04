@@ -54,6 +54,17 @@ void LfModelParser::ParseCreateModel(Tokenizer &tokenizer, std::unique_ptr<Query
     }
 
     token = tokenizer.NextToken();
+    if (token.type != TokenType::STRING_LITERAL || token.value.empty()) {
+        throw std::runtime_error("Expected non-empty string literal for model.");
+    }
+    std::string model = token.value;
+
+    token = tokenizer.NextToken();
+    if (token.type != TokenType::SYMBOL || token.value != ",") {
+        throw std::runtime_error("Expected comma ',' after model.");
+    }
+
+    token = tokenizer.NextToken();
     if (token.type != TokenType::NUMBER || token.value.empty()) {
         throw std::runtime_error("Expected integer value for max_tokens.");
     }
@@ -69,6 +80,7 @@ void LfModelParser::ParseCreateModel(Tokenizer &tokenizer, std::unique_ptr<Query
 
         auto create_statement = std::make_unique<CreateModelStatement>();
         create_statement->model_name = model_name;
+        create_statement->model = model;
         create_statement->max_tokens = max_tokens;
         statement = std::move(create_statement);
     } else {
@@ -120,6 +132,17 @@ void LfModelParser::ParseUpdateModel(Tokenizer &tokenizer, std::unique_ptr<Query
     token = tokenizer.NextToken();
     if (token.type != TokenType::SYMBOL || token.value != ",") {
         throw std::runtime_error("Expected comma ',' after model name.");
+    }
+
+    token = tokenizer.NextToken();
+    if (token.type != TokenType::STRING_LITERAL || token.value.empty()) {
+        throw std::runtime_error("Expected non-empty string literal for model.");
+    }
+    std::string model = token.value;
+
+    token = tokenizer.NextToken();
+    if (token.type != TokenType::SYMBOL || token.value != ",") {
+        throw std::runtime_error("Expected comma ',' after model.");
     }
 
     token = tokenizer.NextToken();
@@ -178,8 +201,8 @@ std::string LfModelParser::ToSQL(const QueryStatement &statement) const {
     switch (statement.type) {
     case StatementType::CREATE_MODEL: {
         const auto &create_stmt = static_cast<const CreateModelStatement &>(statement);
-        sql << "INSERT INTO lf_config.LARGE_FLOCK_MODEL_INTERNAL_TABLE(model_name, max_tokens) VALUES ('"
-            << create_stmt.model_name << "', " << create_stmt.max_tokens << ");";
+        sql << "INSERT INTO lf_config.LARGE_FLOCK_MODEL_INTERNAL_TABLE(model_name, model, max_tokens) VALUES ('"
+            << create_stmt.model_name << "', " << create_stmt.model << "', " << create_stmt.max_tokens << ");";
         break;
     }
     case StatementType::DELETE_MODEL: {
@@ -190,8 +213,10 @@ std::string LfModelParser::ToSQL(const QueryStatement &statement) const {
     }
     case StatementType::UPDATE_MODEL: {
         const auto &update_stmt = static_cast<const UpdateModelStatement &>(statement);
-        sql << "UPDATE lf_config.LARGE_FLOCK_MODEL_INTERNAL_TABLE SET max_tokens = " << update_stmt.new_max_tokens
-            << " WHERE model_name = '" << update_stmt.model_name << "';";
+        sql << "UPDATE lf_config.LARGE_FLOCK_MODEL_INTERNAL_TABLE SET "
+            << "max_tokens = " << update_stmt.new_max_tokens << ", "
+            << "model = '" << update_stmt.model << "' "
+            << "WHERE model_name = '" << update_stmt.model_name << "';";
         break;
     }
     case StatementType::GET_MODEL: {

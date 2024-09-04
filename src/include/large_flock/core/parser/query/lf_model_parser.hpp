@@ -19,6 +19,7 @@ public:
         type = StatementType::CREATE_MODEL;
     }
     std::string model_name;
+    std::string model;
     int max_tokens;
 };
 
@@ -36,6 +37,7 @@ public:
         type = StatementType::UPDATE_MODEL;
     }
     std::string model_name;
+    std::string model;
     int new_max_tokens;
 };
 
