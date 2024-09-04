@@ -10,11 +10,20 @@
 namespace large_flock {
 namespace core {
 
-inline std::string ConstructPrompt(DataChunk &args, const nlohmann::json &args_idx) {
+inline std::string ConstructPrompt(DataChunk &args, const nlohmann::json &args_idx, Connection &con) {
     inja::Environment env;
 
     // get the template string
-    auto template_str = args.data[args_idx["template"]].GetValue(0).ToString();
+    auto prompt_name = args.data[args_idx["template"]].GetValue(0).ToString();
+
+    auto query_result = con.Query(
+        "SELECT prompt FROM lf_config.LARGE_FLOCK_PROMPT_INTERNAL_TABLE WHERE prompt_name = '" + prompt_name + "'");
+
+    if (query_result->RowCount() == 0) {
+        throw std::runtime_error("Prompt not found");
+    }
+
+    auto template_str = query_result->GetValue(0, 0).ToString();
 
     std::string filled_template = "";
     for (idx_t i = 0; i < args.size(); i++) {
@@ -39,11 +48,22 @@ inline std::string ConstructPrompt(DataChunk &args, const nlohmann::json &args_i
 
 static void LfMapScalarFunction(DataChunk &args, ExpressionState &state, Vector &result) {
     // parse the arguments and return the args key idx pair
+    Connection con(*state.GetContext().db);
     auto key_idx_pair = CoreScalarParsers::LfMapScalarParser(args);
-    auto prompt = ConstructPrompt(args, key_idx_pair);
+    auto prompt = ConstructPrompt(args, key_idx_pair, con);
 
     // Get the model name, max tokens and temperature
-    auto model_name = args.data[key_idx_pair["model"]].GetValue(0).ToString();
+    auto model = args.data[key_idx_pair["model"]].GetValue(0).ToString();
+
+    auto query_result =
+        con.Query("SELECT model FROM lf_config.LARGE_FLOCK_MODEL_INTERNAL_TABLE WHERE model_name = '" + model + "'");
+
+    if (query_result->RowCount() == 0) {
+        throw std::runtime_error("Model not found");
+    }
+
+    auto model_name = query_result->GetValue(0, 0).ToString();
+
     auto max_tokens =
         key_idx_pair["max_tokens"] != -1 ? args.data[key_idx_pair["max_tokens"]].GetValue(0).GetValue<int>() : 100;
     auto temperature =

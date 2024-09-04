@@ -35,12 +35,13 @@ void LfConfig::ConfigModelTable(duckdb::Connection &con, std::string &schema_nam
     if (result->RowCount() == 0) {
         con.Query("CREATE TABLE " + schema_name + "." + table_name +
                   " ("
-                  "model_name VARCHAR NOT NULL,"
+                  "model_name VARCHAR NOT NULL PRIMARY KEY,"
+                  "model VARCHAR,"
                   "max_tokens INTEGER NOT NULL"
                   ");");
 
         con.Query("INSERT INTO " + schema_name + "." + table_name +
-                  " (model_name, max_tokens) VALUES ('gpt-3.5-turbo', 4096);");
+                  " (model_name, model, max_tokens) VALUES ('default', 'gpt-3.5-turbo', 4096);");
     }
 }
 
@@ -52,7 +53,7 @@ void LfConfig::ConfigPromptTable(duckdb::Connection &con, std::string &schema_na
     if (result->RowCount() == 0) {
         con.Query("CREATE TABLE " + schema_name + "." + table_name +
                   " ("
-                  "prompt_name VARCHAR NOT NULL,"
+                  "prompt_name VARCHAR NOT NULL PRIMARY KEY,"
                   "prompt VARCHAR NOT NULL"
                   ");");
 
