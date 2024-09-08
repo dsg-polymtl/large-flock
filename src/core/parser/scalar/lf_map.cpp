@@ -6,17 +6,24 @@
 namespace large_flock {
 namespace core {
 
-nlohmann::json CoreScalarParsers::LfMapScalarParser(DataChunk &args) {
-    // check if the args size is at least 4: template, model, input_key,
-    // input_value
-    if (args.ColumnCount() < 4) {
-        throw std::runtime_error("LfMapScalarParser: At least 4 arguments are required: template, "
-                                 "model, input_key, input_value.");
+std::vector<nlohmann::json> CoreScalarParsers::Struct2Json(Vector &struct_vector, int size) {
+    vector<nlohmann::json> vector_json;
+    for (auto i = 0; i < size; i++) {
+        nlohmann::json json;
+        for (auto j = 0; j < StructType::GetChildCount(struct_vector.GetType()); j++) {
+            auto setting_key = StructType::GetChildName(struct_vector.GetType(), j);
+            auto setting_value = StructValue::GetChildren(struct_vector.GetValue(i))[j].ToString();
+            json[setting_key] = setting_value;
+        }
+        vector_json.push_back(json);
     }
+    return vector_json;
+}
 
-    // get the inputs from the args
-    nlohmann::json args_map;
-    std::unordered_map<std::string, int> optional_keys = {{"max_tokens", -1}, {"temperature", -1}};
+void CoreScalarParsers::LfMapScalarParser(DataChunk &args) {
+    if (args.ColumnCount() < 3 || args.ColumnCount() > 4) {
+        throw std::runtime_error("LfMapScalarParser: Invalid number of arguments.");
+    }
 
     // check if template and model are strings
     if (args.data[0].GetType() != LogicalType::VARCHAR) {
@@ -25,34 +32,14 @@ nlohmann::json CoreScalarParsers::LfMapScalarParser(DataChunk &args) {
     if (args.data[1].GetType() != LogicalType::VARCHAR) {
         throw std::runtime_error("LfMapScalarParser: Model must be a string.");
     }
-
-    // store the template and the model name
-    args_map["template"] = 0;
-    args_map["model"] = 1;
-
-    // parse the other args that would follow the key value pairs if key starts
-    // with "lf:" you should add it in the first level else add it in the inputs
-    for (idx_t i = 2; i < args.ColumnCount(); i += 2) {
-        const auto &key_type = args.data[i].GetType();
-        if (key_type != LogicalType::VARCHAR) {
-            throw std::runtime_error("LfMapScalarParser: Key must be a string.");
-        }
-        std::string key = args.data[i].GetValue(0).ToString();
-        if (key.find("lf:") == 0) {
-            args_map[key.substr(3)] = i + 1;
-        } else {
-            args_map["inputs"][key] = i + 1;
+    if (args.data[2].GetType().id() != LogicalTypeId::STRUCT) {
+        throw std::runtime_error("LfMapScalarParser: Inputs must be a struct.");
+    }
+    if (args.ColumnCount() == 4) {
+        if (args.data[3].GetType().id() != LogicalTypeId::STRUCT) {
+            throw std::runtime_error("LfMapScalarParser: Settings value must be a struct.");
         }
     }
-
-    // check if the args_map doesn't contains the temperature and max_tokens
-    for (const auto &el : optional_keys) {
-        if (args_map.find(el.first) == args_map.end()) {
-            args_map[el.first] = el.second;
-        }
-    }
-
-    return args_map;
 }
 
 } // namespace core
