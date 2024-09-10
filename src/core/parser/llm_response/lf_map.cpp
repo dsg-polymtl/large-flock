@@ -9,8 +9,8 @@ namespace core {
 std::vector<std::string> CoreLlmResponseParsers::LfMapResponseParser(std::string &response, int num_responses) {
     std::vector<std::string> responses;
 
-    // Define the regex pattern to match "Response {i}: content"
-    std::regex response_pattern(R"(Response (\d+):\s*(.*?)(?=\s*Response \d+:|$))");
+    // Define the regex pattern to match "Response Prompt {i}: content"
+    std::regex response_pattern(R"(Response Prompt (\d+): (.+))");
     std::smatch match;
 
     auto it = response.cbegin();

@@ -2,4 +2,4 @@
 
 The response should be in the next format
 
-Response <Prompt number>: //Your response here
+Response Prompt <Prompt number>: //Your response here

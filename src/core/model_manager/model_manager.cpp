@@ -6,8 +6,8 @@
 namespace large_flock {
 namespace core {
 
-std::string ModelManager::CallComplete(const std::string &prompt, const std::string &model, const int &max_tokens,
-                                       const float &temperature) {
+std::string ModelManager::CallComplete(const std::string &prompt, const std::string &model,
+                                       const nlohmann::json &settings) {
     // List of supported models
     static const std::unordered_set<std::string> supported_models = {"gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4",
                                                                      "gpt-3.5-turbo"};
@@ -26,6 +26,21 @@ std::string ModelManager::CallComplete(const std::string &prompt, const std::str
     } else {
         openai::start(); // Assume it uses the environment variable if no API
                          // key is provided
+    }
+
+    // check if settings is not empty and has max_tokens and temperature else make some default values
+    auto max_tokens = 100;
+    auto temperature = 0.5;
+    if (!settings.empty()) {
+        for (auto &[key, value] : settings.items()) {
+            if (key == "max_tokens") {
+                max_tokens = std::stoi(static_cast<std::string>(value));
+            } else if (key == "temperature") {
+                temperature = std::stof(static_cast<std::string>(value));
+            } else {
+                throw std::invalid_argument("Invalid setting key: " + key);
+            }
+        }
     }
 
     // Create a JSON request payload with the provided parameters
