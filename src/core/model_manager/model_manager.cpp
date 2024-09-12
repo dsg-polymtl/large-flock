@@ -6,8 +6,8 @@
 namespace large_flock {
 namespace core {
 
-std::string ModelManager::CallComplete(const std::string &prompt, const std::string &model,
-                                       const nlohmann::json &settings) {
+nlohmann::json ModelManager::CallComplete(const std::string &prompt, const std::string &model,
+                                          const nlohmann::json &settings) {
     // List of supported models
     static const std::unordered_set<std::string> supported_models = {"gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4",
                                                                      "gpt-3.5-turbo"};
@@ -45,6 +45,7 @@ std::string ModelManager::CallComplete(const std::string &prompt, const std::str
 
     // Create a JSON request payload with the provided parameters
     nlohmann::json request_payload = {{"model", model},
+                                      {"response_format", {{"type", "json_object"}}},
                                       {"messages", {{{"role", "user"}, {"content", prompt}}}},
                                       {"max_tokens", max_tokens},
                                       {"temperature", temperature}};
@@ -52,13 +53,31 @@ std::string ModelManager::CallComplete(const std::string &prompt, const std::str
     // Make a request to the OpenAI API
     auto completion = openai::chat().create(request_payload);
 
-    // Extract the text from the response
-    std::string response_text = completion["choices"][0]["message"]["content"].get<std::string>();
+    // Check if the conversation was too long for the context window
+    if (completion["choices"][0]["finish_reason"] == "length") {
+        // Handle the error when the context window is too long
+        throw std::runtime_error(
+            "The response exceeded the context window length you can increase your max_tokens parameter.");
+        // Add error handling code here
+    }
 
-    // Trim leading newlines
-    response_text.erase(0, response_text.find_first_not_of("\n"));
+    // Check if the OpenAI safety system refused the request
+    if (completion["choices"][0]["message"]["refusal"] != nullptr) {
+        // Handle refusal error
+        throw std::runtime_error("The request was refused due to OpenAI's safety system.{\"refusal\": \"" +
+                                 completion["choices"][0]["message"]["refusal"].get<std::string>() + "\"}");
+    }
 
-    return response_text;
+    // Check if the model's output included restricted content
+    if (completion["choices"][0]["finish_reason"] == "content_filter") {
+        // Handle content filtering
+        throw std::runtime_error("The content filter was triggered, resulting in incomplete JSON.");
+        // Add error handling code here
+    }
+
+    std::string content_str = completion["choices"][0]["message"]["content"];
+
+    return nlohmann::json::parse(content_str);
 }
 
 } // namespace core

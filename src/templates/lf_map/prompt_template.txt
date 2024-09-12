@@ -2,4 +2,12 @@
 
 The response should be in the next format
 
-Response Prompt <Prompt number>: //Your response here
+{
+    "Prompt <Number>": {
+        // Your response here in json format where you specify the column name and the value associated
+    }
+    ...
+    "Prompt n": {
+        // Your response here in json format where you specify the column name and the value associated
+    }
+}
