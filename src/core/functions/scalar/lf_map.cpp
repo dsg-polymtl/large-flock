@@ -53,13 +53,13 @@ static void LfMapScalarFunction(DataChunk &args, ExpressionState &state, Vector 
     }
     auto model_name = query_result->GetValue(0, 0).ToString();
 
-    auto llm_response = ModelManager::CallComplete(prompt, model_name, settings);
+    auto params = ModelManager::CallComplete(prompt, model_name, settings);
 
     // set the result
     auto index = 0;
     Vector vec(LogicalType::VARCHAR, args.size());
     UnaryExecutor::Execute<string_t, string_t>(vec, result, args.size(), [&](string_t _) {
-        return StringVector::AddString(result, llm_response["Prompt " + std::to_string(index++ + 1)].dump());
+        return StringVector::AddString(result, params["Prompt " + std::to_string(index++ + 1)].dump());
     });
 }
 
