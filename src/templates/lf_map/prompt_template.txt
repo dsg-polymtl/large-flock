@@ -1,13 +1,23 @@
 {{prompts}}
 
-The response should be in the next format
+{
+    "rows": [
+        {% for row in rows %}
+        {
+            {% for key, value in row %}
+            "{{key}}": "{{value}}"
+            {% endfor %}
+        }
+        {% endfor %}
+    ]
+}
+
+Respond in a json format as follow:
 
 {
-    "Prompt <Number>": {
-        // Your response here in json format where you specify the column name and the value associated
-    }
-    ...
-    "Prompt n": {
-        // Your response here in json format where you specify the column name and the value associated
-    }
+    "rows":[
+        {
+            // Your response here in json format where you specify the column name and the value associated
+        }
+    ]
 }

@@ -101,21 +101,20 @@ inline std::vector<std::string> ConstructPrompts(DataChunk &args, Connection &co
         throw std::runtime_error("The total number of tokens in the prompt exceeds the model's maximum token limit");
     } else {
         auto template_tokens = GetNumTokens(read_file_to_string("src/templates/lf_map/prompt_template.txt"));
-        auto max_chunk_size = (model_max_tokens - template_tokens) / row_tokens;
+        auto max_tokens_for_rows = model_max_tokens - template_tokens;
+        auto max_chunk_size = max_tokens_for_rows / row_tokens;
         auto chunk_size = std::min(max_chunk_size, static_cast<int>(args.size()));
-        auto num_chunks = static_cast<int>(std::floor(static_cast<double>((chunk_size * row_tokens * args.size()) /
-                                                                          (model_max_tokens - template_tokens)))) +
-                          1;
+        auto num_chunks = static_cast<int>(std::ceil(static_cast<double>(args.size()) / chunk_size));
 
         for (int i = 0; i < num_chunks; ++i) {
-            std::string filled_template;
-            for (idx_t j = 0; j < chunk_size; ++j) {
-                filled_template +=
-                    "Prompt " + std::to_string(i + j + 1) + ": " + env.render(template_str, params[i + j]) + "\n\n";
+            nlohmann::json data;
+            data["prompts"] = template_str;
+
+            for (int j = 0; j < chunk_size; ++j) {
+                data["rows"].push_back(params[i + j]);
             }
 
-            std::string prompt =
-                env.render_file("src/templates/lf_map/prompt_template.txt", {{"prompts", filled_template}});
+            std::string prompt = env.render_file("src/templates/lf_map/prompt_template.txt", data);
             prompts.push_back(prompt);
         }
     }
@@ -145,16 +144,23 @@ static void LfMapScalarFunction(DataChunk &args, ExpressionState &state, Vector 
         settings = CoreScalarParsers::Struct2Json(args.data[3], args.size())[0];
     }
 
-    nlohmann::json params;
+    nlohmann::json rows = nlohmann::json::array();
     for (const auto &prompt : prompts) {
-        params.update(ModelManager::CallComplete(prompt, model_name, settings));
+        // Call ModelManager::CallComplete and get the rows
+        auto result = ModelManager::CallComplete(prompt, model_name, settings);
+
+        // Check if the result contains the 'rows' field and push it to the main 'rows'
+        if (result.contains("rows")) {
+            for (const auto &row : result["rows"]) {
+                rows.push_back(row);
+            }
+        }
     }
 
     auto index = 0;
     Vector vec(LogicalType::VARCHAR, args.size());
-    UnaryExecutor::Execute<string_t, string_t>(vec, result, args.size(), [&](string_t _) {
-        return StringVector::AddString(result, params["Prompt " + std::to_string(index++ + 1)].dump());
-    });
+    UnaryExecutor::Execute<string_t, string_t>(
+        vec, result, args.size(), [&](string_t _) { return StringVector::AddString(result, rows[index++].dump()); });
 }
 
 void CoreScalarFunctions::RegisterLfMapScalarFunction(DatabaseInstance &db) {
