@@ -137,7 +137,7 @@ void LfModelParser::ParseUpdateModel(Tokenizer &tokenizer, std::unique_ptr<Query
     if (token.type != TokenType::STRING_LITERAL || token.value.empty()) {
         throw std::runtime_error("Expected non-empty string literal for model.");
     }
-    std::string model = token.value;
+    std::string new_model = token.value;
 
     token = tokenizer.NextToken();
     if (token.type != TokenType::SYMBOL || token.value != ",") {
@@ -158,6 +158,7 @@ void LfModelParser::ParseUpdateModel(Tokenizer &tokenizer, std::unique_ptr<Query
     token = tokenizer.NextToken();
     if (token.type == TokenType::END_OF_FILE) {
         auto update_statement = std::make_unique<UpdateModelStatement>();
+        update_statement->new_model = new_model;
         update_statement->model_name = model_name;
         update_statement->new_max_tokens = new_max_tokens;
         statement = std::move(update_statement);
@@ -214,7 +215,7 @@ std::string LfModelParser::ToSQL(const QueryStatement &statement) const {
         const auto &update_stmt = static_cast<const UpdateModelStatement &>(statement);
         sql << "UPDATE lf_config.LARGE_FLOCK_MODEL_INTERNAL_TABLE SET "
             << "max_tokens = " << update_stmt.new_max_tokens << ", "
-            << "model = '" << update_stmt.model << "' "
+            << "model = '" << update_stmt.new_model << "' "
             << "WHERE model_name = '" << update_stmt.model_name << "';";
         break;
     }
