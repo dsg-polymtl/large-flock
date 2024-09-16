@@ -1,3 +1,4 @@
+#include <Python.h>
 #include <algorithm>
 #include <cmath>
 #include <fstream>
@@ -13,14 +14,79 @@
 #include <nlohmann/json.hpp>
 #include <sstream>
 #include <string>
+#include <unistd.h>
 
 namespace large_flock {
 namespace core {
 
+inline void SetupPython() {
+    // Initialize the Python interpreter
+    Py_Initialize();
+
+    // Determine the path to the Python script directory
+    char exe_path[4096];
+    ssize_t len = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
+    if (len == -1) {
+        throw std::runtime_error("Failed to determine the executable path.");
+    }
+    exe_path[len] = '\0'; // Null-terminate the path
+    std::filesystem::path script_dir = std::filesystem::path(exe_path).remove_filename() / "extension/large_flock";
+
+    // Add the Python script directory to sys.path
+    PyObject *sys_path = PySys_GetObject("path");
+    if (!sys_path) {
+        throw std::runtime_error("Failed to get Python sys.path.");
+    }
+    PyObject *folder_path = PyUnicode_FromString(script_dir.string().c_str());
+    if (!folder_path) {
+        throw std::runtime_error("Failed to create Python string for the folder path.");
+    }
+    if (PyList_Append(sys_path, folder_path) != 0) {
+        throw std::runtime_error("Failed to append folder path to Python sys.path.");
+    }
+    Py_DECREF(folder_path);
+}
+
 inline int GetNumTokens(const std::string &str) {
-    nlohmann::json request_payload = {{"model", "text-embedding-3-small"}, {"input", str}};
-    auto num_tokens = openai::embedding().create(request_payload)["usage"]["prompt_tokens"];
-    return num_tokens;
+    // Import the Python module
+    PyObject *module_name = PyUnicode_FromString("get_num_tokens");
+    if (!module_name) {
+        throw std::runtime_error("Failed to create Python string for the module name.");
+    }
+    PyObject *module = PyImport_Import(module_name);
+    Py_DECREF(module_name);
+    if (!module) {
+        PyErr_Print();
+        throw std::runtime_error("Failed to import Python module 'get_num_tokens'.");
+    }
+
+    // Get the Python function from the module
+    PyObject *func = PyObject_GetAttrString(module, "num_tokens");
+    Py_DECREF(module);
+    if (!func || !PyCallable_Check(func)) {
+        PyErr_Print();
+        throw std::runtime_error("Cannot find or call the Python function 'num_tokens'.");
+    }
+
+    PyObject *python_input = PyUnicode_FromString(str.c_str());
+    if (!python_input) {
+        throw std::runtime_error("Failed to create Python string for input.");
+    }
+
+    // Call the Python function
+    PyObject *result = PyObject_CallOneArg(func, python_input);
+    Py_DECREF(func);
+    Py_DECREF(python_input);
+    if (!result) {
+        PyErr_Print();
+        throw std::runtime_error("Failed to call Python function 'num_tokens'.");
+    }
+
+    // Extract the integer result from the Python object
+    int length = static_cast<int>(PyLong_AsLong(result));
+    Py_DECREF(result);
+
+    return length;
 }
 
 template <typename T>
@@ -78,6 +144,7 @@ std::string combine_values(const nlohmann::json &json_obj) {
 
 inline std::vector<std::string> ConstructPrompts(DataChunk &args, Connection &con, int model_max_tokens = 4096) {
     inja::Environment env;
+    SetupPython();
 
     auto prompt_name = args.data[0].GetValue(0).ToString();
     auto query_result = con.Query(
@@ -100,7 +167,16 @@ inline std::vector<std::string> ConstructPrompts(DataChunk &args, Connection &co
     if (row_tokens > model_max_tokens) {
         throw std::runtime_error("The total number of tokens in the prompt exceeds the model's maximum token limit");
     } else {
-        auto template_tokens = GetNumTokens(read_file_to_string("src/templates/lf_map/prompt_template.txt"));
+        char exe_path[4096];
+        ssize_t len = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
+        if (len == -1) {
+            throw std::runtime_error("Failed to determine the executable path.");
+        }
+        exe_path[len] = '\0'; // Null-terminate the path
+        auto template_path =
+            std::filesystem::path(exe_path).remove_filename() / "extension/large_flock/prompt_template.txt";
+
+        auto template_tokens = GetNumTokens(read_file_to_string(template_path.c_str()));
         auto max_tokens_for_rows = model_max_tokens - template_tokens;
         auto max_chunk_size = max_tokens_for_rows / row_tokens;
         auto chunk_size = std::min(max_chunk_size, static_cast<int>(args.size()));
@@ -114,7 +190,7 @@ inline std::vector<std::string> ConstructPrompts(DataChunk &args, Connection &co
                 data["rows"].push_back(params[i + j]);
             }
 
-            std::string prompt = env.render_file("src/templates/lf_map/prompt_template.txt", data);
+            std::string prompt = env.render_file(template_path.c_str(), data);
             prompts.push_back(prompt);
         }
     }
