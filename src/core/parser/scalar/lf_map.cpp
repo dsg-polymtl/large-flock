@@ -11,9 +11,9 @@ std::vector<nlohmann::json> CoreScalarParsers::Struct2Json(Vector &struct_vector
     for (auto i = 0; i < size; i++) {
         nlohmann::json json;
         for (auto j = 0; j < StructType::GetChildCount(struct_vector.GetType()); j++) {
-            auto setting_key = StructType::GetChildName(struct_vector.GetType(), j);
-            auto setting_value = StructValue::GetChildren(struct_vector.GetValue(i))[j].ToString();
-            json[setting_key] = setting_value;
+            auto key = StructType::GetChildName(struct_vector.GetType(), j);
+            auto value = StructValue::GetChildren(struct_vector.GetValue(i))[j].ToString();
+            json[key] = value;
         }
         vector_json.push_back(json);
     }

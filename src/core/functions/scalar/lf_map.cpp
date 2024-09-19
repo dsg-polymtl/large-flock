@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cmath>
 #include <fstream>
+#include <functional>
 #include <inja/inja.hpp>
 #include <iostream>
 #include <large_flock/common.hpp>
@@ -142,11 +143,11 @@ std::string combine_values(const nlohmann::json &json_obj) {
     return combined;
 }
 
-inline std::vector<std::string> ConstructPrompts(DataChunk &args, Connection &con, int model_max_tokens = 4096) {
+inline std::vector<std::string> ConstructPrompts(std::vector<nlohmann::json> &unique_rows, Connection &con,
+                                                 std::string prompt_name, int model_max_tokens = 4096) {
     inja::Environment env;
     SetupPython();
 
-    auto prompt_name = args.data[0].GetValue(0).ToString();
     auto query_result = con.Query(
         "SELECT prompt FROM lf_config.LARGE_FLOCK_PROMPT_INTERNAL_TABLE WHERE prompt_name = '" + prompt_name + "'");
 
@@ -156,9 +157,7 @@ inline std::vector<std::string> ConstructPrompts(DataChunk &args, Connection &co
 
     auto template_str = query_result->GetValue(0, 0).ToString();
     auto row_tokens = GetNumTokens(template_str);
-
-    auto params = CoreScalarParsers::Struct2Json(args.data[2], args.size());
-    auto max_length_values = get_max_length_values(params);
+    auto max_length_values = get_max_length_values(unique_rows);
     auto combined_values = combine_values(max_length_values);
     row_tokens += GetNumTokens(combined_values);
 
@@ -179,15 +178,15 @@ inline std::vector<std::string> ConstructPrompts(DataChunk &args, Connection &co
         auto template_tokens = GetNumTokens(read_file_to_string(template_path.c_str()));
         auto max_tokens_for_rows = model_max_tokens - template_tokens;
         auto max_chunk_size = max_tokens_for_rows / row_tokens;
-        auto chunk_size = std::min(max_chunk_size, static_cast<int>(args.size()));
-        auto num_chunks = static_cast<int>(std::ceil(static_cast<double>(args.size()) / chunk_size));
+        auto chunk_size = std::min(max_chunk_size, static_cast<int>(unique_rows.size()));
+        auto num_chunks = static_cast<int>(std::ceil(static_cast<double>(unique_rows.size()) / chunk_size));
 
         for (int i = 0; i < num_chunks; ++i) {
             nlohmann::json data;
             data["prompts"] = template_str;
 
             for (int j = 0; j < chunk_size; ++j) {
-                data["rows"].push_back(params[i + j]);
+                data["rows"].push_back(unique_rows[i + j]);
             }
 
             std::string prompt = env.render_file(template_path.c_str(), data);
@@ -198,6 +197,42 @@ inline std::vector<std::string> ConstructPrompts(DataChunk &args, Connection &co
     return prompts;
 }
 
+std::string encode_json(const nlohmann::json &j) {
+    // Convert the JSON object to a string and use std::hash to generate a unique encoding
+    std::string json_str = j.dump();
+    std::size_t hash_val = std::hash<std::string> {}(json_str);
+    return std::to_string(hash_val);
+}
+
+inline std::tuple<std::vector<std::string>, std::map<std::string, int>, std::vector<nlohmann::json>>
+BuildHashWithIndexes(DataChunk &args) {
+    auto inputs = CoreScalarParsers::Struct2Json(args.data[2], args.size());
+
+    // Cache to store unique JSONs
+    std::map<std::string, int> hash_index;
+    std::vector<nlohmann::json> unique_rows;
+
+    // Vector to store the encoding results
+    std::vector<std::string> encoded_rows;
+
+    // Process each JSON object
+    int unique_index = 0;
+    for (const auto &row : inputs) {
+        // Generate encoding for each JSON object
+        std::string encoding = encode_json(row);
+
+        // If the encoding is not in the hash_index, add it
+        if (hash_index.find(encoding) == hash_index.end()) {
+            hash_index[encoding] = unique_index++;
+            unique_rows.push_back(row);
+        }
+
+        // Add the encoding to the result vector
+        encoded_rows.push_back(encoding);
+    }
+
+    return {encoded_rows, hash_index, unique_rows};
+}
 static void LfMapScalarFunction(DataChunk &args, ExpressionState &state, Vector &result) {
     Connection con(*state.GetContext().db);
     CoreScalarParsers::LfMapScalarParser(args);
@@ -213,14 +248,16 @@ static void LfMapScalarFunction(DataChunk &args, ExpressionState &state, Vector 
     auto model_name = query_result->GetValue(0, 0).ToString();
     auto model_max_tokens = query_result->GetValue(1, 0).GetValue<int32_t>();
 
-    auto prompts = ConstructPrompts(args, con, model_max_tokens);
+    auto [encoded_rows, hash_index, unique_rows] = BuildHashWithIndexes(args);
+
+    auto prompts = ConstructPrompts(unique_rows, con, args.data[0].GetValue(0).ToString(), model_max_tokens);
 
     nlohmann::json settings;
     if (args.ColumnCount() == 4) {
-        settings = CoreScalarParsers::Struct2Json(args.data[3], args.size())[0];
+        settings = CoreScalarParsers::Struct2Json(args.data[3], 1)[0];
     }
 
-    nlohmann::json rows = nlohmann::json::array();
+    nlohmann::json rows_cache = nlohmann::json::array();
     for (const auto &prompt : prompts) {
         // Call ModelManager::CallComplete and get the rows
         auto result = ModelManager::CallComplete(prompt, model_name, settings);
@@ -228,15 +265,16 @@ static void LfMapScalarFunction(DataChunk &args, ExpressionState &state, Vector 
         // Check if the result contains the 'rows' field and push it to the main 'rows'
         if (result.contains("rows")) {
             for (const auto &row : result["rows"]) {
-                rows.push_back(row);
+                rows_cache.push_back(row);
             }
         }
     }
 
     auto index = 0;
     Vector vec(LogicalType::VARCHAR, args.size());
-    UnaryExecutor::Execute<string_t, string_t>(
-        vec, result, args.size(), [&](string_t _) { return StringVector::AddString(result, rows[index++].dump()); });
+    UnaryExecutor::Execute<string_t, string_t>(vec, result, args.size(), [&](string_t _) {
+        return StringVector::AddString(result, rows_cache[hash_index[encoded_rows[index++]]].dump());
+    });
 }
 
 void CoreScalarFunctions::RegisterLfMapScalarFunction(DatabaseInstance &db) {
