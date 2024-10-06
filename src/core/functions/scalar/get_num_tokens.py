@@ -3,6 +3,6 @@
 import tiktoken
 
 def num_tokens(text):
-    enc = tiktoken.get_encoding("cl100k_base")
-    tokens = enc.encode(text)
+    encoding = tiktoken.get_encoding("cl100k_base")
+    tokens = encoding.encode(text)
     return len(tokens)

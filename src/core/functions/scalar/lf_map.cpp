@@ -1,7 +1,5 @@
-#include <Python.h>
 #include <algorithm>
 #include <cmath>
-#include <fstream>
 #include <functional>
 #include <inja/inja.hpp>
 #include <iostream>
@@ -9,6 +7,7 @@
 #include <large_flock/core/functions/scalar.hpp>
 #include <large_flock/core/model_manager/model_manager.hpp>
 #include <large_flock/core/model_manager/openai.hpp>
+#include <large_flock/core/model_manager/tiktoken.hpp>
 #include <large_flock/core/parser/llm_response.hpp>
 #include <large_flock/core/parser/scalar.hpp>
 #include <large_flock_extension.hpp>
@@ -20,107 +19,37 @@
 namespace large_flock {
 namespace core {
 
-inline void SetupPython() {
-    // Initialize the Python interpreter
-    Py_Initialize();
-
-    // Determine the path to the Python script directory
-    char exe_path[4096];
-    ssize_t len = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
-    if (len == -1) {
-        throw std::runtime_error("Failed to determine the executable path.");
-    }
-    exe_path[len] = '\0'; // Null-terminate the path
-    std::filesystem::path script_dir = std::filesystem::path(exe_path).remove_filename() / "extension/large_flock";
-
-    // Add the Python script directory to sys.path
-    PyObject *sys_path = PySys_GetObject("path");
-    if (!sys_path) {
-        throw std::runtime_error("Failed to get Python sys.path.");
-    }
-    PyObject *folder_path = PyUnicode_FromString(script_dir.string().c_str());
-    if (!folder_path) {
-        throw std::runtime_error("Failed to create Python string for the folder path.");
-    }
-    if (PyList_Append(sys_path, folder_path) != 0) {
-        throw std::runtime_error("Failed to append folder path to Python sys.path.");
-    }
-    Py_DECREF(folder_path);
-}
-
-inline int GetNumTokens(const std::string &str) {
-    // Import the Python module
-    PyObject *module_name = PyUnicode_FromString("get_num_tokens");
-    if (!module_name) {
-        throw std::runtime_error("Failed to create Python string for the module name.");
-    }
-    PyObject *module = PyImport_Import(module_name);
-    Py_DECREF(module_name);
-    if (!module) {
-        PyErr_Print();
-        throw std::runtime_error("Failed to import Python module 'get_num_tokens'.");
-    }
-
-    // Get the Python function from the module
-    PyObject *func = PyObject_GetAttrString(module, "num_tokens");
-    Py_DECREF(module);
-    if (!func || !PyCallable_Check(func)) {
-        PyErr_Print();
-        throw std::runtime_error("Cannot find or call the Python function 'num_tokens'.");
-    }
-
-    PyObject *python_input = PyUnicode_FromString(str.c_str());
-    if (!python_input) {
-        throw std::runtime_error("Failed to create Python string for input.");
-    }
-
-    // Call the Python function
-    PyObject *result = PyObject_CallOneArg(func, python_input);
-    Py_DECREF(func);
-    Py_DECREF(python_input);
-    if (!result) {
-        PyErr_Print();
-        throw std::runtime_error("Failed to call Python function 'num_tokens'.");
-    }
-
-    // Extract the integer result from the Python object
-    int length = static_cast<int>(PyLong_AsLong(result));
-    Py_DECREF(result);
-
-    return length;
-}
-
 template <typename T>
-std::string to_string(const T &value) {
+std::string ToString(const T &value) {
     std::ostringstream oss;
     oss << value;
     return oss.str();
 }
 
-nlohmann::json get_max_length_values(const std::vector<nlohmann::json> &params) {
-    nlohmann::json result;
+nlohmann::json GetMaxLengthValues(const std::vector<nlohmann::json> &params) {
+    nlohmann::json attr_to_max_token_length;
 
     for (const auto &json_obj : params) {
         for (const auto &item : json_obj.items()) {
-            std::string key = item.key();
-            std::string value_str = to_string(item.value());
+            auto key = item.key();
+            auto value_str = ToString(item.value());
             int length = value_str.length();
 
-            if (result.contains(key)) {
-                std::string current_max_value_str = to_string(result[key]);
+            if (attr_to_max_token_length.contains(key)) {
+                auto current_max_value_str = ToString(attr_to_max_token_length[key]);
                 if (current_max_value_str.length() < length) {
-                    result[key] = item.value();
+                    attr_to_max_token_length[key] = item.value();
                 }
             } else {
-                result[key] = item.value();
+                attr_to_max_token_length[key] = item.value();
             }
         }
     }
 
-    return result;
+    return attr_to_max_token_length;
 }
 
-std::string read_file_to_string(const std::string &file_path) {
+std::string PromptFileToString(const std::string &file_path) {
     std::ifstream file(file_path);
     if (!file.is_open()) {
         throw std::runtime_error("Could not open the file: " + file_path);
@@ -134,7 +63,7 @@ std::string read_file_to_string(const std::string &file_path) {
 std::string combine_values(const nlohmann::json &json_obj) {
     std::string combined;
     for (const auto &item : json_obj.items()) {
-        combined += to_string(item.value()) + " ";
+        combined += ToString(item.value()) + " ";
     }
 
     if (!combined.empty()) {
@@ -146,7 +75,7 @@ std::string combine_values(const nlohmann::json &json_obj) {
 inline std::vector<std::string> ConstructPrompts(std::vector<nlohmann::json> &unique_rows, Connection &con,
                                                  std::string prompt_name, int model_max_tokens = 4096) {
     inja::Environment env;
-    SetupPython();
+    Tiktoken::SetupPython();
 
     auto query_result = con.Query(
         "SELECT prompt FROM lf_config.LARGE_FLOCK_PROMPT_INTERNAL_TABLE WHERE prompt_name = '" + prompt_name + "'");
@@ -156,10 +85,10 @@ inline std::vector<std::string> ConstructPrompts(std::vector<nlohmann::json> &un
     }
 
     auto template_str = query_result->GetValue(0, 0).ToString();
-    auto row_tokens = GetNumTokens(template_str);
-    auto max_length_values = get_max_length_values(unique_rows);
+    auto row_tokens = Tiktoken::GetNumTokens(template_str);
+    auto max_length_values = GetMaxLengthValues(unique_rows);
     auto combined_values = combine_values(max_length_values);
-    row_tokens += GetNumTokens(combined_values);
+    row_tokens += Tiktoken::GetNumTokens(combined_values);
 
     std::vector<std::string> prompts;
 
@@ -175,7 +104,7 @@ inline std::vector<std::string> ConstructPrompts(std::vector<nlohmann::json> &un
         auto template_path =
             std::filesystem::path(exe_path).remove_filename() / "extension/large_flock/prompt_template.txt";
 
-        auto template_tokens = GetNumTokens(read_file_to_string(template_path.c_str()));
+        auto template_tokens = Tiktoken::GetNumTokens(PromptFileToString(template_path.c_str()));
         auto max_tokens_for_rows = model_max_tokens - template_tokens;
         auto max_chunk_size = max_tokens_for_rows / row_tokens;
         auto chunk_size = std::min(max_chunk_size, static_cast<int>(unique_rows.size()));
@@ -189,7 +118,7 @@ inline std::vector<std::string> ConstructPrompts(std::vector<nlohmann::json> &un
                 data["rows"].push_back(unique_rows[i + j]);
             }
 
-            std::string prompt = env.render_file(template_path.c_str(), data);
+            auto prompt = env.render_file(template_path.c_str(), data);
             prompts.push_back(prompt);
         }
     }
@@ -242,7 +171,7 @@ static void LfMapScalarFunction(DataChunk &args, ExpressionState &state, Vector 
         settings = CoreScalarParsers::Struct2Json(args.data[3], 1)[0];
     }
 
-    nlohmann::json results_cache = nlohmann::json::array();
+    auto results_cache = nlohmann::json::array();
     for (const auto &prompt : prompts) {
         // Call ModelManager::CallComplete and get the rows
         auto result = ModelManager::CallComplete(prompt, model_name, settings);
