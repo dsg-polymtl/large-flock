@@ -197,41 +197,26 @@ inline std::vector<std::string> ConstructPrompts(std::vector<nlohmann::json> &un
     return prompts;
 }
 
-std::string encode_json(const nlohmann::json &j) {
-    // Convert the JSON object to a string and use std::hash to generate a unique encoding
-    std::string json_str = j.dump();
-    std::size_t hash_val = std::hash<std::string> {}(json_str);
-    return std::to_string(hash_val);
-}
-
-inline std::tuple<std::vector<std::string>, std::map<std::string, int>, std::vector<nlohmann::json>>
-BuildHashWithIndexes(DataChunk &args) {
+inline std::tuple<std::vector<int>, std::vector<nlohmann::json>> PrepareCache(DataChunk &args) {
     auto inputs = CoreScalarParsers::Struct2Json(args.data[2], args.size());
 
-    // Cache to store unique JSONs
-    std::map<std::string, int> hash_index;
+    std::vector<int> result_indexes;
     std::vector<nlohmann::json> unique_rows;
-
-    // Vector to store the encoding results
-    std::vector<std::string> encoded_rows;
 
     // Process each JSON object
     int unique_index = 0;
     for (const auto &row : inputs) {
-        // Generate encoding for each JSON object
-        std::string encoding = encode_json(row);
-
-        // If the encoding is not in the hash_index, add it
-        if (hash_index.find(encoding) == hash_index.end()) {
-            hash_index[encoding] = unique_index++;
+        auto it = std::find(unique_rows.begin(), unique_rows.end(), row);
+        if (it != unique_rows.end()) {
+            auto row_index = std::distance(unique_rows.begin(), it);
+            result_indexes.push_back(row_index);
+        } else {
             unique_rows.push_back(row);
+            result_indexes.push_back(unique_index++);
         }
-
-        // Add the encoding to the result vector
-        encoded_rows.push_back(encoding);
     }
 
-    return {encoded_rows, hash_index, unique_rows};
+    return {result_indexes, unique_rows};
 }
 static void LfMapScalarFunction(DataChunk &args, ExpressionState &state, Vector &result) {
     Connection con(*state.GetContext().db);
@@ -248,7 +233,7 @@ static void LfMapScalarFunction(DataChunk &args, ExpressionState &state, Vector 
     auto model_name = query_result->GetValue(0, 0).ToString();
     auto model_max_tokens = query_result->GetValue(1, 0).GetValue<int32_t>();
 
-    auto [encoded_rows, hash_index, unique_rows] = BuildHashWithIndexes(args);
+    auto [results_indexes, unique_rows] = PrepareCache(args);
 
     auto prompts = ConstructPrompts(unique_rows, con, args.data[0].GetValue(0).ToString(), model_max_tokens);
 
@@ -257,7 +242,7 @@ static void LfMapScalarFunction(DataChunk &args, ExpressionState &state, Vector 
         settings = CoreScalarParsers::Struct2Json(args.data[3], 1)[0];
     }
 
-    nlohmann::json rows_cache = nlohmann::json::array();
+    nlohmann::json results_cache = nlohmann::json::array();
     for (const auto &prompt : prompts) {
         // Call ModelManager::CallComplete and get the rows
         auto result = ModelManager::CallComplete(prompt, model_name, settings);
@@ -265,7 +250,7 @@ static void LfMapScalarFunction(DataChunk &args, ExpressionState &state, Vector 
         // Check if the result contains the 'rows' field and push it to the main 'rows'
         if (result.contains("rows")) {
             for (const auto &row : result["rows"]) {
-                rows_cache.push_back(row);
+                results_cache.push_back(row);
             }
         }
     }
@@ -273,7 +258,7 @@ static void LfMapScalarFunction(DataChunk &args, ExpressionState &state, Vector 
     auto index = 0;
     Vector vec(LogicalType::VARCHAR, args.size());
     UnaryExecutor::Execute<string_t, string_t>(vec, result, args.size(), [&](string_t _) {
-        return StringVector::AddString(result, rows_cache[hash_index[encoded_rows[index++]]].dump());
+        return StringVector::AddString(result, results_cache[results_indexes[index++]].dump());
     });
 }
 
