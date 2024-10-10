@@ -8,7 +8,6 @@ namespace core {
 
 struct ModelManager {
     static nlohmann::json CallComplete(const std::string &prompt, const std::string &model,
-                                       const nlohmann::json &settings);
                                        const nlohmann::json &settings, const bool json_response = true);
 };
 
