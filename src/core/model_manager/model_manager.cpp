@@ -90,5 +90,47 @@ nlohmann::json ModelManager::CallComplete(const std::string &prompt, const std::
     return content_str;
 }
 
+nlohmann::json ModelManager::CallEmbedding(const std::string &input, const std::string &model) {
+    // List of supported models
+    static const std::unordered_set<std::string> supported_models = {"text-embedding-3-small", "text-embedding-3-large"};
+
+    // Check if the provided model is in the list of supported models
+    if (supported_models.find(model) == supported_models.end()) {
+        throw std::invalid_argument("Model '" + model +
+                                    "' is not supported. Please choose one from the supported list: "
+                                    "text-embedding-3-small, text-embedding-3-large.");
+    }
+
+    // Get API key from the environment variable
+    const char *key = std::getenv("OPENAI_API_KEY");
+    if (!key) {
+        throw std::runtime_error("OPENAI_API_KEY environment variable is not set.");
+    } else {
+        openai::start(); // Assume it uses the environment variable if no API
+                         // key is provided
+    }
+
+    // Create a JSON request payload with the provided parameters
+    nlohmann::json request_payload = {
+        {"model", model},
+        {"input", input},
+    };
+
+    // Make a request to the OpenAI API
+    auto completion = openai::embedding().create(request_payload);
+
+    // Check if the conversation was too long for the context window
+    if (completion["choices"][0]["finish_reason"] == "length") {
+        // Handle the error when the context window is too long
+        throw std::runtime_error(
+            "The response exceeded the context window length you can increase your max_tokens parameter.");
+        // Add error handling code here
+    }
+
+    auto embedding = completion["data"][0]["embedding"];
+
+    return embedding;
+}
+
 } // namespace core
 } // namespace large_flock

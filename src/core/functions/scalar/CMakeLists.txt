@@ -1,4 +1,5 @@
 set(EXTENSION_SOURCES
     ${EXTENSION_SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/lf_map.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/lf_generate.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/lf_generate.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/lf_embedding.cpp
     PARENT_SCOPE)
