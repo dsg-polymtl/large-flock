@@ -7,7 +7,7 @@ namespace large_flock {
 namespace core {
 
 nlohmann::json ModelManager::CallComplete(const std::string &prompt, const std::string &model,
-                                          const nlohmann::json &settings) {
+                                          const nlohmann::json &settings, const bool json_response) {
     // List of supported models
     static const std::unordered_set<std::string> supported_models = {"gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4",
                                                                      "gpt-3.5-turbo"};
@@ -44,11 +44,17 @@ nlohmann::json ModelManager::CallComplete(const std::string &prompt, const std::
     }
 
     // Create a JSON request payload with the provided parameters
-    nlohmann::json request_payload = {{"model", model},
-                                      {"response_format", {{"type", "json_object"}}},
-                                      {"messages", {{{"role", "user"}, {"content", prompt}}}},
-                                      {"max_tokens", max_tokens},
-                                      {"temperature", temperature}};
+    nlohmann::json request_payload = {
+        {"model", model},
+        {"messages", {{{"role", "user"}, {"content", prompt}}}},
+        {"max_tokens", max_tokens},
+        {"temperature", temperature}
+    };
+
+    // Conditionally add "response_format" if json_response is true
+    if (json_response) {
+        request_payload["response_format"] = {{"type", "json_object"}};
+    }
 
     // Make a request to the OpenAI API
     auto completion = openai::chat().create(request_payload);
@@ -77,7 +83,11 @@ nlohmann::json ModelManager::CallComplete(const std::string &prompt, const std::
 
     std::string content_str = completion["choices"][0]["message"]["content"];
 
-    return nlohmann::json::parse(content_str);
+    if (json_response) {
+        return nlohmann::json::parse(content_str);
+    }
+
+    return content_str;
 }
 
 } // namespace core

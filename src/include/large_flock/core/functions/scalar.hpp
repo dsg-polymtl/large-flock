@@ -8,10 +8,12 @@ namespace core {
 struct CoreScalarFunctions {
     static void Register(DatabaseInstance &db) {
         RegisterLfMapScalarFunction(db);
+        RegisterLfGenerateScalarFunction(db);
     }
 
 private:
     static void RegisterLfMapScalarFunction(DatabaseInstance &db);
+    static void RegisterLfGenerateScalarFunction(DatabaseInstance &db);
 };
 
 } // namespace core

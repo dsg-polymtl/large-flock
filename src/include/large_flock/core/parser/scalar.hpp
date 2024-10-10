@@ -10,6 +10,7 @@ namespace core {
 struct CoreScalarParsers {
     static std::vector<nlohmann::json> Struct2Json(Vector &struct_vector, int size);
     static void LfMapScalarParser(DataChunk &args);
+    static void LfGenerateScalarParser(DataChunk &args);
 };
 
 } // namespace core
