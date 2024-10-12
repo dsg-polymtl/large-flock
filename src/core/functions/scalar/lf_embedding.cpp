@@ -24,13 +24,13 @@ static void LfEmbeddingScalarFunction(DataChunk &args, ExpressionState &state, V
     auto inputs = CoreScalarParsers::Struct2Json(args.data[0], args.size());
 
     auto embeddings = nlohmann::json::array();
-    for (auto &input : inputs) {
-        nlohmann::json input_embedding;
-        for (auto &item : input.items()) {
-            auto element_embedding = ModelManager::CallEmbedding(item.value(), model_name);
-            input_embedding[item.key()] = element_embedding;
+    for (auto &row : inputs) {
+        std::string concat_input;
+        for (auto &item : row.items()) {
+            concat_input += item.value().get<std::string>() + " ";
         }
-        embeddings.push_back(input_embedding);
+        auto element_embedding = ModelManager::CallEmbedding(concat_input, model_name);
+        embeddings.push_back(element_embedding);
     }
 
     auto index = 0;
@@ -41,8 +41,9 @@ static void LfEmbeddingScalarFunction(DataChunk &args, ExpressionState &state, V
 }
 
 void CoreScalarFunctions::RegisterLfEmbeddingScalarFunction(DatabaseInstance &db) {
-    ExtensionUtil::RegisterFunction(db, ScalarFunction("lf_embedding", {}, LogicalType::VARCHAR, LfEmbeddingScalarFunction, nullptr,
-                                                       nullptr, nullptr, nullptr, LogicalType::ANY));
+    ExtensionUtil::RegisterFunction(db,
+                                    ScalarFunction("lf_embedding", {}, LogicalType::VARCHAR, LfEmbeddingScalarFunction,
+                                                   nullptr, nullptr, nullptr, nullptr, LogicalType::ANY));
 }
 
 } // namespace core
