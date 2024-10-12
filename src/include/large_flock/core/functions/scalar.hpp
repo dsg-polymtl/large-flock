@@ -10,12 +10,14 @@ struct CoreScalarFunctions {
         RegisterLfMapScalarFunction(db);
         RegisterLfGenerateScalarFunction(db);
         RegisterLfEmbeddingScalarFunction(db);
+        RegisterLfFilterScalarFunction(db);
     }
 
 private:
     static void RegisterLfMapScalarFunction(DatabaseInstance &db);
     static void RegisterLfGenerateScalarFunction(DatabaseInstance &db);
     static void RegisterLfEmbeddingScalarFunction(DatabaseInstance &db);
+    static void RegisterLfFilterScalarFunction(DatabaseInstance &db);
 };
 
 } // namespace core
