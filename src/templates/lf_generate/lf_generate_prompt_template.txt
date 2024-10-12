@@ -1,0 +1,21 @@
+{{prompts}}
+
+{
+    "rows": [
+        {% for row in rows %}
+        {
+            {% for key, value in row %}
+            "{{key}}": "{{value}}"
+            {% endfor %}
+        }
+        {% endfor %}
+    ]
+}
+
+Respond in a json format as follow:
+
+{
+    "rows":[
+        // Your response here in plain text for each row
+    ]
+}

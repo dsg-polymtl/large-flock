@@ -47,6 +47,10 @@ file(
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/src/templates/lf_map/prompt_template.txt"
      DESTINATION "${CMAKE_BINARY_DIR}/extension/${TARGET_NAME}")
 
+file(
+  COPY "${CMAKE_CURRENT_SOURCE_DIR}/src/templates/lf_generate/lf_generate_prompt_template.txt"
+  DESTINATION "${CMAKE_BINARY_DIR}/extension/${TARGET_NAME}")
+
 # Install the extension
 install(
   TARGETS ${EXTENSION_NAME}
