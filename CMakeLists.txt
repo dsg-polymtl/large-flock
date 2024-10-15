@@ -58,11 +58,15 @@ file(
   COPY "${CMAKE_CURRENT_SOURCE_DIR}/src/core/functions/scalar/get_num_tokens.py"
   DESTINATION "${CMAKE_BINARY_DIR}/extension/${TARGET_NAME}")
 
-file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/src/templates/lf_map/prompt_template.txt"
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/src/templates/lf_map_prompt_template.txt"
      DESTINATION "${CMAKE_BINARY_DIR}/extension/${TARGET_NAME}")
 
 file(
-  COPY "${CMAKE_CURRENT_SOURCE_DIR}/src/templates/lf_generate/lf_generate_prompt_template.txt"
+  COPY "${CMAKE_CURRENT_SOURCE_DIR}/src/templates/lf_generate_prompt_template.txt"
+  DESTINATION "${CMAKE_BINARY_DIR}/extension/${TARGET_NAME}")
+
+file(
+  COPY "${CMAKE_CURRENT_SOURCE_DIR}/src/templates/lf_filter_prompt_template.txt"
   DESTINATION "${CMAKE_BINARY_DIR}/extension/${TARGET_NAME}")
 
 # Install the extension
