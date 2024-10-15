@@ -7,13 +7,13 @@
 #include <large_flock/core/functions/scalar.hpp>
 #include <large_flock/core/model_manager/model_manager.hpp>
 #include <large_flock/core/model_manager/openai.hpp>
-#include <large_flock/core/model_manager/tiktoken.hpp>
 #include <large_flock/core/parser/llm_response.hpp>
 #include <large_flock/core/parser/scalar.hpp>
 #include <large_flock_extension.hpp>
 #include <nlohmann/json.hpp>
 #include <sstream>
 #include <string>
+#include <tiktoken/tiktoken.h>
 #include <unistd.h>
 
 namespace large_flock {
@@ -75,7 +75,7 @@ std::string combine_values3(const nlohmann::json &json_obj) {
 inline std::vector<std::string> ConstructPrompts3(std::vector<nlohmann::json> &unique_rows, Connection &con,
                                                   std::string prompt_name, int model_max_tokens = 4096) {
     inja::Environment env;
-    Tiktoken::SetupPython();
+    std::unique_ptr<TiktokenCpp::TikToken> encoding = TiktokenCpp::GetEncoding("cl100k_base");
 
     auto query_result = con.Query(
         "SELECT prompt FROM lf_config.LARGE_FLOCK_PROMPT_INTERNAL_TABLE WHERE prompt_name = '" + prompt_name + "'");
@@ -85,10 +85,10 @@ inline std::vector<std::string> ConstructPrompts3(std::vector<nlohmann::json> &u
     }
 
     auto template_str = query_result->GetValue(0, 0).ToString();
-    auto row_tokens = Tiktoken::GetNumTokens(template_str);
+    auto row_tokens = encoding->EncodeOrdinary(template_str).size();
     auto max_length_values = GetMaxLengthValues3(unique_rows);
     auto combined_values = combine_values3(max_length_values);
-    row_tokens += Tiktoken::GetNumTokens(combined_values);
+    row_tokens += encoding->EncodeOrdinary(combined_values).size();
 
     std::vector<std::string> prompts;
 
@@ -104,10 +104,10 @@ inline std::vector<std::string> ConstructPrompts3(std::vector<nlohmann::json> &u
         auto template_path =
             std::filesystem::path(exe_path).remove_filename() / "extension/large_flock/lf_generate_prompt_template.txt";
 
-        auto template_tokens = Tiktoken::GetNumTokens(PromptFileToString3(template_path.c_str()));
+        auto template_tokens = encoding->EncodeOrdinary(PromptFileToString3(template_path.c_str())).size();
         auto max_tokens_for_rows = model_max_tokens - template_tokens;
         auto max_chunk_size = max_tokens_for_rows / row_tokens;
-        auto chunk_size = std::min(max_chunk_size, static_cast<int>(unique_rows.size()));
+        auto chunk_size = std::min(static_cast<int>(max_chunk_size), static_cast<int>(unique_rows.size()));
         auto num_chunks = static_cast<int>(std::ceil(static_cast<double>(unique_rows.size()) / chunk_size));
 
         for (int i = 0; i < num_chunks; ++i) {

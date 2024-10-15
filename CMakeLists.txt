@@ -20,6 +20,10 @@ find_package(
   Python3
   COMPONENTS Development
   REQUIRED)
+find_package(pcre2 CONFIG REQUIRED)
+
+include_directories(third_party/tiktoken/include)
+link_directories(third_party/tiktoken/build)
 
 # Build the DuckDB static and loadable extensions
 build_static_extension(${TARGET_NAME} ${EXTENSION_SOURCES})
@@ -27,13 +31,23 @@ build_loadable_extension(${TARGET_NAME} " " ${EXTENSION_SOURCES})
 
 # Link libraries for the static extension
 target_link_libraries(
-  ${EXTENSION_NAME} CURL::libcurl nlohmann_json::nlohmann_json pantor::inja
+  ${EXTENSION_NAME}
+  CURL::libcurl
+  nlohmann_json::nlohmann_json
+  pantor::inja
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/tiktoken/build/libtiktoken.a
+  PCRE2::8BIT
   ${Python3_LIBRARIES})
 
 # Link libraries for the loadable extension
 target_link_libraries(
-  ${LOADABLE_EXTENSION_NAME} CURL::libcurl nlohmann_json::nlohmann_json
-  pantor::inja ${Python3_LIBRARIES})
+  ${LOADABLE_EXTENSION_NAME}
+  CURL::libcurl
+  nlohmann_json::nlohmann_json
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/tiktoken/build/libtiktoken.a
+  PCRE2::8BIT
+  pantor::inja
+  ${Python3_LIBRARIES})
 
 # Include Python headers in both static and loadable extensions
 target_include_directories(${EXTENSION_NAME} PRIVATE ${Python3_INCLUDE_DIRS})

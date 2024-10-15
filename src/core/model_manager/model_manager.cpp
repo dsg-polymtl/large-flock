@@ -44,20 +44,22 @@ nlohmann::json ModelManager::CallComplete(const std::string &prompt, const std::
     }
 
     // Create a JSON request payload with the provided parameters
-    nlohmann::json request_payload = {
-        {"model", model},
-        {"messages", {{{"role", "user"}, {"content", prompt}}}},
-        {"max_tokens", max_tokens},
-        {"temperature", temperature}
-    };
+    nlohmann::json request_payload = {{"model", model},
+                                      {"messages", {{{"role", "user"}, {"content", prompt}}}},
+                                      {"max_tokens", max_tokens},
+                                      {"temperature", temperature}};
 
     // Conditionally add "response_format" if json_response is true
     if (json_response) {
         request_payload["response_format"] = {{"type", "json_object"}};
     }
 
-    // Make a request to the OpenAI API
-    auto completion = openai::chat().create(request_payload);
+    // To avoid memory corruption and race conditions in a multithreaded environment,
+    // replace the static `openai::OpenAI` instance with a non-static local instance
+    // in each thread. This ensures that each thread has its own independent instance
+    // of OpenAI, preventing overwrites of responses and ensuring thread-safety.
+    openai::OpenAI instance;
+    auto completion = instance.chat.create(request_payload);
 
     // Check if the conversation was too long for the context window
     if (completion["choices"][0]["finish_reason"] == "length") {
@@ -92,7 +94,8 @@ nlohmann::json ModelManager::CallComplete(const std::string &prompt, const std::
 
 nlohmann::json ModelManager::CallEmbedding(const std::string &input, const std::string &model) {
     // List of supported models
-    static const std::unordered_set<std::string> supported_models = {"text-embedding-3-small", "text-embedding-3-large"};
+    static const std::unordered_set<std::string> supported_models = {"text-embedding-3-small",
+                                                                     "text-embedding-3-large"};
 
     // Check if the provided model is in the list of supported models
     if (supported_models.find(model) == supported_models.end()) {
@@ -117,7 +120,8 @@ nlohmann::json ModelManager::CallEmbedding(const std::string &input, const std::
     };
 
     // Make a request to the OpenAI API
-    auto completion = openai::embedding().create(request_payload);
+    openai::OpenAI instance;
+    auto completion = instance.embedding.create(request_payload);
 
     // Check if the conversation was too long for the context window
     if (completion["choices"][0]["finish_reason"] == "length") {
