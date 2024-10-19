@@ -85,7 +85,8 @@ std::string LargeFlockExtension::Version() const {
 extern "C" {
 
 DUCKDB_EXTENSION_API void large_flock_init(DatabaseInstance &db) {
-    LoadInternal(db);
+    duckdb::DuckDB db_wrapper(db);
+    db_wrapper.LoadExtension<duckdb::LargeFlockExtension>();
 }
 
 DUCKDB_EXTENSION_API const char *large_flock_version() {
