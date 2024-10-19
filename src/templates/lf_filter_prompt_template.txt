@@ -16,8 +16,6 @@ Respond in a json format as follow:
 
 {
     "rows":[
-        {
-            // Your response here in json format where you specify the column name and the value associated
-        }
+        // For each row in the input rows check the prompt condition if it's valid. The answers should be in boolean format separated by commas for each row.
     ]
 }

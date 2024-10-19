@@ -8,7 +8,6 @@ namespace core {
 
 class Tiktoken {
 public:
-    static void SetupPython();
     static int GetNumTokens(const std::string &str);
 };
 

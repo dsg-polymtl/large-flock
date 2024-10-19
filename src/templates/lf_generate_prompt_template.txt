@@ -16,6 +16,6 @@ Respond in a json format as follow:
 
 {
     "rows":[
-        // Your response here in plain text for each row
+        // For each row in the input rows answer the prompt in a plain text format.
     ]
 }

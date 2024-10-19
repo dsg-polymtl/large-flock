@@ -75,7 +75,6 @@ std::string combine_values(const nlohmann::json &json_obj) {
 inline std::vector<std::string> ConstructPrompts(std::vector<nlohmann::json> &unique_rows, Connection &con,
                                                  std::string prompt_name, int model_max_tokens = 4096) {
     inja::Environment env;
-    Tiktoken::SetupPython();
 
     auto query_result = con.Query(
         "SELECT prompt FROM lf_config.LARGE_FLOCK_PROMPT_INTERNAL_TABLE WHERE prompt_name = '" + prompt_name + "'");
@@ -102,7 +101,7 @@ inline std::vector<std::string> ConstructPrompts(std::vector<nlohmann::json> &un
         }
         exe_path[len] = '\0'; // Null-terminate the path
         auto template_path =
-            std::filesystem::path(exe_path).remove_filename() / "extension/large_flock/prompt_template.txt";
+            std::filesystem::path(exe_path).remove_filename() / "extension/large_flock/lf_map_prompt_template.txt";
 
         auto template_tokens = Tiktoken::GetNumTokens(PromptFileToString(template_path.c_str()));
         auto max_tokens_for_rows = model_max_tokens - template_tokens;

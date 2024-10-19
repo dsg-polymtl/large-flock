@@ -16,6 +16,6 @@ Respond in a json format as follow:
 
 {
     "rows":[
-        // Your response here should be a boolean values seprated by commas that show if the condition at each row is met or not (TRUE/FALSE)
+        // For each row in the input rows add the necessary columns that would ensure that the prompt is correctly answered.
     ]
 }

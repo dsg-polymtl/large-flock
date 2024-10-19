@@ -29,7 +29,7 @@ nlohmann::json ModelManager::CallComplete(const std::string &prompt, const std::
     }
 
     // check if settings is not empty and has max_tokens and temperature else make some default values
-    auto max_tokens = 100;
+    auto max_tokens = 4000;
     auto temperature = 0.5;
     if (!settings.empty()) {
         for (auto &[key, value] : settings.items()) {
@@ -44,12 +44,10 @@ nlohmann::json ModelManager::CallComplete(const std::string &prompt, const std::
     }
 
     // Create a JSON request payload with the provided parameters
-    nlohmann::json request_payload = {
-        {"model", model},
-        {"messages", {{{"role", "user"}, {"content", prompt}}}},
-        {"max_tokens", max_tokens},
-        {"temperature", temperature}
-    };
+    nlohmann::json request_payload = {{"model", model},
+                                      {"messages", {{{"role", "user"}, {"content", prompt}}}},
+                                      {"max_tokens", max_tokens},
+                                      {"temperature", temperature}};
 
     // Conditionally add "response_format" if json_response is true
     if (json_response) {
@@ -92,7 +90,8 @@ nlohmann::json ModelManager::CallComplete(const std::string &prompt, const std::
 
 nlohmann::json ModelManager::CallEmbedding(const std::string &input, const std::string &model) {
     // List of supported models
-    static const std::unordered_set<std::string> supported_models = {"text-embedding-3-small", "text-embedding-3-large"};
+    static const std::unordered_set<std::string> supported_models = {"text-embedding-3-small",
+                                                                     "text-embedding-3-large"};
 
     // Check if the provided model is in the list of supported models
     if (supported_models.find(model) == supported_models.end()) {

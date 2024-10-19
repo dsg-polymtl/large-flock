@@ -16,39 +16,28 @@ add_subdirectory(src)
 find_package(CURL REQUIRED)
 find_package(inja REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
-find_package(
-  Python3
-  COMPONENTS Development
-  REQUIRED)
 
 # Build the DuckDB static and loadable extensions
 build_static_extension(${TARGET_NAME} ${EXTENSION_SOURCES})
 build_loadable_extension(${TARGET_NAME} " " ${EXTENSION_SOURCES})
 
 # Link libraries for the static extension
-target_link_libraries(
-  ${EXTENSION_NAME} CURL::libcurl nlohmann_json::nlohmann_json pantor::inja
-  ${Python3_LIBRARIES})
+target_link_libraries(${EXTENSION_NAME} CURL::libcurl
+                      nlohmann_json::nlohmann_json pantor::inja)
 
 # Link libraries for the loadable extension
-target_link_libraries(
-  ${LOADABLE_EXTENSION_NAME} CURL::libcurl nlohmann_json::nlohmann_json
-  pantor::inja ${Python3_LIBRARIES})
+target_link_libraries(${LOADABLE_EXTENSION_NAME} CURL::libcurl
+                      nlohmann_json::nlohmann_json pantor::inja)
 
-# Include Python headers in both static and loadable extensions
-target_include_directories(${EXTENSION_NAME} PRIVATE ${Python3_INCLUDE_DIRS})
-target_include_directories(${LOADABLE_EXTENSION_NAME}
-                           PRIVATE ${Python3_INCLUDE_DIRS})
-
-file(
-  COPY "${CMAKE_CURRENT_SOURCE_DIR}/src/core/functions/scalar/get_num_tokens.py"
-  DESTINATION "${CMAKE_BINARY_DIR}/extension/${TARGET_NAME}")
-
-file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/src/templates/lf_map/prompt_template.txt"
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/src/templates/lf_map_prompt_template.txt"
      DESTINATION "${CMAKE_BINARY_DIR}/extension/${TARGET_NAME}")
 
 file(
-  COPY "${CMAKE_CURRENT_SOURCE_DIR}/src/templates/lf_generate/lf_generate_prompt_template.txt"
+  COPY "${CMAKE_CURRENT_SOURCE_DIR}/src/templates/lf_generate_prompt_template.txt"
+  DESTINATION "${CMAKE_BINARY_DIR}/extension/${TARGET_NAME}")
+
+file(
+  COPY "${CMAKE_CURRENT_SOURCE_DIR}/src/templates/lf_filter_prompt_template.txt"
   DESTINATION "${CMAKE_BINARY_DIR}/extension/${TARGET_NAME}")
 
 # Install the extension
