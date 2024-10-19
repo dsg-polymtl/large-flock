@@ -33,17 +33,19 @@ static void LfEmbeddingScalarFunction(DataChunk &args, ExpressionState &state, V
         embeddings.push_back(element_embedding);
     }
 
-    auto index = 0;
-    Vector vec(LogicalType::VARCHAR, args.size());
-    UnaryExecutor::Execute<string_t, string_t>(vec, result, args.size(), [&](string_t _) {
-        return StringVector::AddString(result, embeddings[index++].dump());
-    });
+    for (size_t index = 0; index < embeddings.size(); index++) {
+        vector<Value> embedding;
+        for (auto &value : embeddings[index]) {
+            embedding.push_back(Value(static_cast<double>(value)));
+        }
+        result.SetValue(index, Value::LIST(embedding));
+    }
 }
 
 void CoreScalarFunctions::RegisterLfEmbeddingScalarFunction(DatabaseInstance &db) {
-    ExtensionUtil::RegisterFunction(db,
-                                    ScalarFunction("lf_embedding", {}, LogicalType::VARCHAR, LfEmbeddingScalarFunction,
-                                                   nullptr, nullptr, nullptr, nullptr, LogicalType::ANY));
+    ExtensionUtil::RegisterFunction(db, ScalarFunction("lf_embedding", {}, LogicalType::LIST(LogicalType::DOUBLE),
+                                                       LfEmbeddingScalarFunction, nullptr, nullptr, nullptr, nullptr,
+                                                       LogicalType::ANY));
 }
 
 } // namespace core
