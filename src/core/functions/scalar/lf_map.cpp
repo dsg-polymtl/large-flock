@@ -15,7 +15,6 @@
 #include <nlohmann/json.hpp>
 #include <sstream>
 #include <string>
-#include <unistd.h>
 
 namespace large_flock {
 namespace core {
@@ -95,14 +94,8 @@ inline std::vector<std::string> ConstructPrompts(std::vector<nlohmann::json> &un
     if (row_tokens > model_max_tokens) {
         throw std::runtime_error("The total number of tokens in the prompt exceeds the model's maximum token limit");
     } else {
-        char exe_path[4096];
-        ssize_t len = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
-        if (len == -1) {
-            throw std::runtime_error("Failed to determine the executable path.");
-        }
-        exe_path[len] = '\0'; // Null-terminate the path
-        auto template_path =
-            std::filesystem::path(exe_path).remove_filename() / "extension/large_flock/lf_map_prompt_template.txt";
+        auto template_path = std::filesystem::canonical("/proc/self/exe").remove_filename() /
+                             "extension/large_flock/lf_map_prompt_template.txt";
 
         auto template_tokens = Tiktoken::GetNumTokens(PromptFileToString(template_path.c_str()));
         auto max_tokens_for_rows = model_max_tokens - template_tokens;
