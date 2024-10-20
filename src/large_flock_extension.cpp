@@ -37,8 +37,11 @@ ParserExtensionParseResult duck_parse(ParserExtensionInfo *, const std::string &
 
 ParserExtensionPlanResult duck_plan(ParserExtensionInfo *, ClientContext &context,
                                     unique_ptr<ParserExtensionParseData> parse_data) {
-    auto duck_state = make_shared_ptr<DuckState>(std::move(parse_data));
-    context.registered_state["duck"] = duck_state;
+    auto state = context.registered_state->Get<DuckState>("duck");
+    if (state) {
+        context.registered_state->Remove("duck");
+    }
+    context.registered_state->GetOrCreate<DuckState>("duck", std::move(parse_data));
     throw BinderException("Use duck_bind instead");
 }
 
@@ -47,9 +50,8 @@ BoundStatement duck_bind(ClientContext &context, Binder &binder, OperatorExtensi
     case StatementType::EXTENSION_STATEMENT: {
         auto &extension_statement = dynamic_cast<ExtensionStatement &>(statement);
         if (extension_statement.extension.parse_function == duck_parse) {
-            auto lookup = context.registered_state.find("duck");
-            if (lookup != context.registered_state.end()) {
-                auto duck_state = (DuckState *)lookup->second.get();
+            auto duck_state = context.registered_state->Get<DuckState>("duck");
+            if (duck_state) {
                 auto duck_binder = Binder::CreateBinder(context, &binder);
                 auto duck_parse_data = dynamic_cast<DuckParseData *>(duck_state->parse_data.get());
                 auto statement = duck_binder->Bind(*(duck_parse_data->statement));
