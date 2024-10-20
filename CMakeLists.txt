@@ -12,6 +12,7 @@ project(${TARGET_NAME})
 include_directories(src/include)
 add_subdirectory(src)
 
+
 # Find dependencies
 find_package(CURL REQUIRED)
 find_package(inja REQUIRED)
@@ -21,6 +22,17 @@ find_package(nlohmann_json CONFIG REQUIRED)
 build_static_extension(${TARGET_NAME} ${EXTENSION_SOURCES})
 build_loadable_extension(${TARGET_NAME} " " ${EXTENSION_SOURCES})
 
+# Check if we're in debug mode and enable AddressSanitizer
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    message(STATUS "Enabling AddressSanitizer for Debug build")
+    # Enable AddressSanitizer
+    target_compile_options(${EXTENSION_NAME} PRIVATE -fsanitize=address -fno-omit-frame-pointer)
+    target_link_options(${EXTENSION_NAME} PRIVATE -fsanitize=address)
+
+    target_compile_options(${LOADABLE_EXTENSION_NAME} PRIVATE -fsanitize=address -fno-omit-frame-pointer)
+    target_link_options(${LOADABLE_EXTENSION_NAME} PRIVATE -fsanitize=address)
+endif()
+
 # Link libraries for the static extension
 target_link_libraries(${EXTENSION_NAME} CURL::libcurl
                       nlohmann_json::nlohmann_json pantor::inja)
@@ -28,6 +40,7 @@ target_link_libraries(${EXTENSION_NAME} CURL::libcurl
 # Link libraries for the loadable extension
 target_link_libraries(${LOADABLE_EXTENSION_NAME} CURL::libcurl
                       nlohmann_json::nlohmann_json pantor::inja)
+
 
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/src/templates/lf_map_prompt_template.txt"
      DESTINATION "${CMAKE_BINARY_DIR}/extension/${TARGET_NAME}")
