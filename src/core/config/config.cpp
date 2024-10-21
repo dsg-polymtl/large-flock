@@ -58,7 +58,7 @@ void Config::ConfigPromptTable(duckdb::Connection &con, std::string &schema_name
                   ");");
 
         con.Query("INSERT INTO " + schema_name + "." + table_name +
-                  " (prompt_name ,prompt) VALUES ('summarize', 'Summarize the following text: {{text}}');");
+                  " (prompt_name ,prompt) VALUES ('hello-world', 'Tell me hello world');");
     }
 }
 
