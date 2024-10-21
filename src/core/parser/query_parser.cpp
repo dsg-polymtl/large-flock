@@ -20,11 +20,11 @@ std::string QueryParser::ParseQuery(const std::string &query) {
 
     token = tokenizer.NextToken();
     value = StringUtil::Upper(token.value);
-    if (token.type == TokenType::KEYWORD && value == "MODEL") {
+    if (token.type == TokenType::KEYWORD && value == "MODEL" || value == "MODELS") {
         ModelParser model_parser;
         model_parser.Parse(query, statement);
         return model_parser.ToSQL(*statement);
-    } else if (token.type == TokenType::KEYWORD && value == "PROMPT") {
+    } else if (token.type == TokenType::KEYWORD && (value == "PROMPT" || value == "PROMPTS")) {
         PromptParser prompt_parser;
         prompt_parser.Parse(query, statement);
         return prompt_parser.ToSQL(*statement);

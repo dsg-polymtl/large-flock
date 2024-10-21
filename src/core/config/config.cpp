@@ -41,7 +41,10 @@ void Config::ConfigModelTable(duckdb::Connection &con, std::string &schema_name)
                   ");");
 
         con.Query("INSERT INTO " + schema_name + "." + table_name +
-                  " (model_name, model, max_tokens) VALUES ('default', 'gpt-3.5-turbo', 4096);");
+                  " (model_name, model, max_tokens) VALUES "
+                  "('default', 'gpt-4o-mini', 128000),"
+                  "('gpt-4o-mini', 'gpt-4o-mini', 128000),"
+                  "('gpt-4o', 'gpt-4o', 128000)");
     }
 }
 

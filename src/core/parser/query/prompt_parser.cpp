@@ -146,7 +146,7 @@ void PromptParser::ParseUpdatePrompt(Tokenizer &tokenizer, std::unique_ptr<Query
 void PromptParser::ParseGetPrompt(Tokenizer &tokenizer, std::unique_ptr<QueryStatement> &statement) {
     Token token = tokenizer.NextToken();
     std::string value = StringUtil::Upper(token.value);
-    if (token.type != TokenType::KEYWORD || value != "PROMPT") {
+    if (token.type != TokenType::KEYWORD || (value != "PROMPT" && value != "PROMPTS")) {
         throw std::runtime_error("Unknown keyword: " + token.value);
     }
 

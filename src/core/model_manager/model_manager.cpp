@@ -11,14 +11,13 @@ std::string ModelManager::OPENAI_API_KEY = "";
 nlohmann::json ModelManager::CallComplete(const std::string &prompt, const std::string &model,
                                           const nlohmann::json &settings, const bool json_response) {
     // List of supported models
-    static const std::unordered_set<std::string> supported_models = {"gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4",
-                                                                     "gpt-3.5-turbo"};
+    static const std::unordered_set<std::string> supported_models = {"gpt-4o", "gpt-4o-mini"};
 
     // Check if the provided model is in the list of supported models
     if (supported_models.find(model) == supported_models.end()) {
         throw std::invalid_argument("Model '" + model +
                                     "' is not supported. Please choose one from the supported list: "
-                                    "gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-4, gpt-3.5-turbo.");
+                                    "gpt-4o, gpt-4o-mini.");
     }
 
     openai::start(ModelManager::OPENAI_API_KEY);

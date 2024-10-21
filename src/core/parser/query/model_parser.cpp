@@ -170,8 +170,8 @@ void ModelParser::ParseUpdateModel(Tokenizer &tokenizer, std::unique_ptr<QuerySt
 void ModelParser::ParseGetModel(Tokenizer &tokenizer, std::unique_ptr<QueryStatement> &statement) {
     Token token = tokenizer.NextToken();
     std::string value = StringUtil::Upper(token.value);
-    if (token.type != TokenType::KEYWORD || value != "MODEL") {
-        throw std::runtime_error("Expected 'MODEL' after 'SHOW'.");
+    if (token.type != TokenType::KEYWORD || (value != "MODEL" && value != "MODELS")) {
+        throw std::runtime_error("Expected 'MODEL' after 'GET'.");
     }
 
     token = tokenizer.NextToken();
