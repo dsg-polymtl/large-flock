@@ -144,14 +144,13 @@ static void LlmMapScalarFunction(DataChunk &args, ExpressionState &state, Vector
     }
 
     auto index = 0;
-    Vector vec(LogicalType::VARCHAR, args.size());
-    UnaryExecutor::Execute<string_t, string_t>(vec, result, args.size(), [&](string_t _) {
-        return StringVector::AddString(result, responses[index++].dump());
-    });
+    for (const auto &response : responses) {
+        result.SetValue(index++, Value(response.dump()));
+    }
 }
 
 void CoreScalarFunctions::RegisterLlmMapScalarFunction(DatabaseInstance &db) {
-    ExtensionUtil::RegisterFunction(db, ScalarFunction("llm_map", {}, LogicalType::VARCHAR, LlmMapScalarFunction,
+    ExtensionUtil::RegisterFunction(db, ScalarFunction("llm_map", {}, LogicalType::JSON(), LlmMapScalarFunction,
                                                        nullptr, nullptr, nullptr, nullptr, LogicalType::ANY));
 }
 
