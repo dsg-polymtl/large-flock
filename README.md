@@ -1,199 +1,158 @@
-# Large Flock Extension
+# FlockMTL Extension
 
-This repository provides a DuckDB extension for integrating LLM usage, allowing you to use a scalar function that processes prompts and returns responses from an LLM models. It is based on the [DuckDB extension template](https://github.com/duckdb/extension-template).
-
----
-
-## Table of Contents
-
-- [Large Flock Extension](#large-flock-extension)
-  - [Table of Contents](#table-of-contents)
-  - [Getting Started](#getting-started)
-    - [Clone the Repository](#clone-the-repository)
-    - [Managing Dependencies](#managing-dependencies)
-    - [Build the Extension](#build-the-extension)
-  - [Running the Extension](#running-the-extension)
-    - [Set Up Environment Variables](#set-up-environment-variables)
-    - [Start DuckDB](#start-duckdb)
-    - [Use the Extension](#use-the-extension)
-      - [Syntax](#syntax)
-      - [Parameters](#parameters)
-      - [Example Usage](#example-usage)
-  - [Running the Tests](#running-the-tests)
-  - [Installing the Deployed Binaries](#installing-the-deployed-binaries)
+This repository provides a DuckDB extension that integrates language model (LLM) capabilities directly into your queries and workflows. This experimental extension enables DuckDB users to add semantic analysis (classification, filtering, completion, all w/ structured output) and embeddings using GPT models—all from within SQL commands. Following the tradition of declarativity, we introduce an administrative view of `MODEL`(s) and `PROMPT`(s) akin to `TABLE`(s).
 
 ---
 
-## Getting Started
+### Installation
 
-### Clone the Repository
+Install the extension as a [Community Extension](https://community-extensions.duckdb.org/).
 
-Clone the repository with the following command:
-
-```bash
-git clone --recurse-submodules https://github.com/dsg-polymtl/large-flock.git
-```
-
-> **Note:** The `--recurse-submodules` flag ensures that DuckDB is included, which is necessary for building the extension.
-
-### Managing Dependencies
-
-DuckDB extensions use VCPKG for dependency management. Set it up by running:
-
-```bash
-source scripts/setup_vcpkg.sh
-```
-
-### Build the Extension
-
-To build the extension, use one of the following methods:
-
-1. **Using `make`:**
-
-   ```bash
-   make
-   ```
-
-2. **If `make` is not available, you can use the provided script:**
-
-   ```bash
-   sh scripts/build_project.sh
-   ```
-
-These commands generates the following binaries:
-
-- `./build/release/duckdb`: The DuckDB shell with the extension code preloaded.
-- `./build/release/test/unittest`: The test runner for DuckDB, with the extension linked.
-- `./build/release/extension/llm/llm.duckdb_extension`: The loadable binary for distribution.
+Run:
+  ```sql
+  INSTALL flockmtl FROM community;
+  LOAD flockmtl;
+  ```
 
 ---
 
-## Running the Extension
+### Documentation
 
-### Set Up Environment Variables
+Next, we demonstrate how to use the **DuckDB LLM Extension** and an example we would like to analyze product reviews. Specifically, we’ll focus on generating text, classifying reviews as positive or negative, and working with text embeddings using a `product_reviews` table with attributes `review_text`, `review_id`, and `customer_name`.
 
-Configure your OpenAI API keys by updating the `env.sh` script and running:
+#### **1. Text Generation with `llm_complete`**
 
-```bash
-sh scripts/setup_env.sh
-```
+`llm_complete` generates text based on a given prompt and LLM model. You can customize the output with parameters like `max_tokens` or `temperature`.
 
-### Start DuckDB
+##### **Examples**:
+- **Basic Text Generation**:  
+  Generate a simple greeting message from a predefined prompt.
+  ```sql
+  SELECT llm_complete('hello-world', 'default') AS salutation;
+  ```
 
-Launch the DuckDB shell with the extension using:
+- **Sentiment Classification – Positive Review**:  
+  Use a predefined `is_positive` prompt to classify whether a review is positive.
+  ```sql
+  SELECT llm_complete('is_positive', 'default', {'text': review_text}, {'max_tokens': 100}) AS results 
+  FROM product_reviews;
+  ```
 
-```bash
-./build/release/duckdb
-```
+- **Sentiment Classification – Negative Review**:  
+  Similarly, classify whether a review is negative using the `is_negative` prompt.
+  ```sql
+  SELECT llm_complete('is_negative', 'default', {'text': review_text}, {'max_tokens': 100}) AS results 
+  FROM product_reviews;
+  ```
 
-### Use the Extension
+- **Without Additional Parameters**:  
+  Use the default model and settings to check if a review is positive without specifying extra parameters.
+  ```sql
+  SELECT llm_complete('is_positive', 'default', {'text': review_text}) AS results 
+  FROM product_reviews;
+  ```
 
-The core feature of this extension is the `lf_map` scalar function, which is a mapping function from a row in a relation to a new set of attributes that are appended to the row. It does so using an LLM call.
+#### **2. JSON Output with `llm_complete_json`**
 
-#### Syntax
+`llm_complete_json` is used to return structured JSON output. This is useful when you need more detailed or structured responses from the LLM.
 
-```sql
-SELECT lf_map('template_text', 'model_name', 'input_name', column, ['lf:max_tokens', token_count], ['lf:temperature', temp_value]) AS result FROM table;
-```
+##### **Examples**:
+- **Classify Review and Return JSON**:  
+  Classify whether a review is positive or negative and return the result in JSON format.
+  ```sql
+  SELECT review_id, llm_complete_json('is_positive', 'default', {'text': review_text}, {'max_tokens': 100}) AS results 
+  FROM product_reviews;
+  ```
 
-#### Parameters
+#### **3. Filtering with `llm_filter`**
 
-- **template_text**: A string with the template text, including placeholders in the format `{
-  { placeholder }}`.
-- **model_name**: The OpenAI model to use (e.g., `gpt-4`, `gpt-3.5-turbo`).
-- **input_name**: The placeholder in the template replaced by values from the specified column.
-- **column**: The column containing values to replace the placeholder.
-- **lf:max_tokens** (optional): Maximum number of tokens for the response.
-- **lf:temperature** (optional): Controls output randomness (0 to 1).
+`llm_filter` can be used to filter reviews based on LLM-based classification, such as identifying whether a review is positive or negative.
 
-#### Example Usage
+##### **Examples**:
+- **Filter Positive Reviews**:  
+  Filter product reviews and only return those classified as positive.
+  ```sql
+  SELECT review_id, customer_name, review_text 
+  FROM product_reviews 
+  WHERE llm_filter('is_positive', 'default', {'text': review_text});
+  ```
 
-**Validating Email Addresses**
+- **Filter Negative Reviews**:  
+  Similarly, filter product reviews to return only negative reviews.
+  ```sql
+  SELECT review_id, customer_name, review_text 
+  FROM product_reviews 
+  WHERE llm_filter('is_negative', 'default', {'text': review_text});
+  ```
 
-Given a `students` table:
+#### **4. Text Embedding with `llm_embedding`**
 
-```sql
-CREATE TABLE students (
-    student_id INTEGER PRIMARY KEY,
-    first_name VARCHAR,
-    last_name VARCHAR,
-    email VARCHAR,
-    enrollment_date DATE
-);
+`llm_embedding` generates vector embeddings for text, which can be used for tasks like semantic similarity, clustering, or advanced search.
 
-INSERT INTO students (student_id, first_name, last_name, email, enrollment_date) VALUES
-    (1, 'John', 'Doe', 'john.doe@example.com', '2022-09-01'),
-    (2, 'Jane', 'Smith', 'jane.smithexample.com', '2022-09-01'),
-    (3, 'Emily', 'Jones', 'emily.jones@example.com', '2023-01-15');
-```
-
-Apply `lf_map`:
-
-```sql
-SELECT email, lf_map('is this a valid email? {{email}}', 'gpt-4', 'email', email) AS verification FROM students;
-```
-
-With all parameters:
-
-```sql
-SELECT email, lf_map('is this a valid email? {{email}}', 'gpt-4o-mini', 'email', email, 'lf:max_tokens', 100, 'lf:temperature', 0.7) AS verification FROM students;
-```
-
-**Output:**
-
-```
-┌─────────────────────────┬───────────────────────────────────────────────────────────────┐
-│          email          │                          verification                         │
-│         varchar         │                            varchar                            │
-├─────────────────────────┼───────────────────────────────────────────────────────────────┤
-│ john.doe@example.com    │ Yes, this appears to be a valid email address.                │
-│ jane.smithexample.com   │ No, this is not a correct email.                              │
-│ emily.jones@example.com │ Yes, this appears to be a valid email address.                │
-└─────────────────────────┴───────────────────────────────────────────────────────────────┘
-```
-
-**Notes:**
-
-- The `lf_map` function requires the `template`, `model_name`, `input_name`, and `column` parameters.
-- Optional parameters include `lf:max_tokens` and `lf:temperature`. Supported models are `gpt-4`, `gpt-4-mini`, `gpt-4-turbo`, `gpt-4`, and `gpt-3.5-turbo`.
+##### **Example**:
+- **Generate Embeddings for Review Text**:  
+  Generate embeddings for each review in the `product_reviews` table, which could be used later for similarity searches or clustering.
+  ```sql
+  SELECT review_id, llm_embedding({'review_text': review_text}, 'text-embedding-3-small') AS embeddings 
+  FROM product_reviews;
+  ```
 
 ---
 
-## Running the Tests
+### **Prompt and Model Management**
 
-To run SQL tests for the DuckDB extension, use:
+You can manage LLM prompts and models dynamically in DuckDB using the following commands:
 
-```bash
-make test
-```
+#### **Prompt Management**:
+- **Get All Prompts**:  
+  ```sql
+  GET PROMPTS;
+  ```
 
----
+- **Get Specific Prompt**:  
+  Retrieve the content of a specific prompt by name.
+  ```sql
+  GET PROMPT <prompt_name>;
+  ```
 
-## Installing the Deployed Binaries
+- **Create a New Prompt**:  
+  ```sql
+  CREATE PROMPT(<prompt_name>, <prompt_text>);
+  ```
 
-To install extension binaries from S3:
+- **Update an Existing Prompt**:  
+  ```sql
+  UPDATE PROMPT(<prompt_name>, <new_prompt_text>);
+  ```
 
-1. **Enable Unsigned Extensions:**
+- **Delete a Prompt**:  
+  ```sql
+  DELETE PROMPT <prompt_name>;
+  ```
 
-   Launch DuckDB with the `allow_unsigned_extensions` option:
+#### **Model Management**:
+- **Get All Models**:  
+  ```sql
+  GET MODELS;
+  ```
 
-   - CLI: `duckdb -unsigned`
-   - Python: `con = duckdb.connect(':memory:', config={'allow_unsigned_extensions': 'true'})`
-   - NodeJS: `db = new duckdb.Database(':memory:', {"allow_unsigned_extensions": "true"});`
+- **Get Specific Model**:  
+  Retrieve the details of a specific model by name.
+  ```sql
+  GET MODEL <model_name>;
+  ```
 
-2. **Set Repository Endpoint:**
+- **Create a New Model**:  
+  ```sql
+  CREATE MODEL(<model_name>, <model_type>, <max_tokens>);
+  ```
 
-   Set the repository endpoint in DuckDB to your bucket's HTTP URL:
+- **Update a Model**:  
+  ```sql
+  UPDATE MODEL(<model_name>, <model_type>, <max_tokens>);
+  ```
 
-   ```sql
-   SET custom_extension_repository='bucket.s3.eu-west-1.amazonaws.com/llm_extension/latest';
-   ```
-
-   Use the `/latest` path for the latest version, or replace `latest` with a specific version.
-
-3. **Install and Load the Extension:**
-
-   ```sql
-   INSTALL llm;
-   LOAD llm;
-   ```
+- **Delete a Model**:  
+  ```sql
+  DELETE MODEL <model_name>;
+  ```
