@@ -1,9 +1,9 @@
 #pragma once
-#include "large_flock/common.hpp"
+#include "flockmtl/common.hpp"
 
 #include <nlohmann/json.hpp>
 
-namespace large_flock {
+namespace flockmtl {
 
 namespace core {
 
@@ -16,4 +16,4 @@ struct CoreScalarParsers {
 
 } // namespace core
 
-} // namespace large_flock
+} // namespace flockmtl

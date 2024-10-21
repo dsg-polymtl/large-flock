@@ -1,22 +1,22 @@
 #include <algorithm>
 #include <cmath>
+#include <flockmtl/common.hpp>
+#include <flockmtl/core/functions/scalar.hpp>
+#include <flockmtl/core/model_manager/model_manager.hpp>
+#include <flockmtl/core/model_manager/openai.hpp>
+#include <flockmtl/core/model_manager/tiktoken.hpp>
+#include <flockmtl/core/parser/llm_response.hpp>
+#include <flockmtl/core/parser/scalar.hpp>
+#include <flockmtl_extension.hpp>
 #include <functional>
 #include <inja/inja.hpp>
 #include <iostream>
-#include <large_flock/common.hpp>
-#include <large_flock/core/functions/scalar.hpp>
-#include <large_flock/core/model_manager/model_manager.hpp>
-#include <large_flock/core/model_manager/openai.hpp>
-#include <large_flock/core/model_manager/tiktoken.hpp>
-#include <large_flock/core/parser/llm_response.hpp>
-#include <large_flock/core/parser/scalar.hpp>
-#include <large_flock_extension.hpp>
 #include <nlohmann/json.hpp>
 #include <sstream>
 #include <string>
 #include <templates/llm_complete_json_prompt_template.hpp>
 
-namespace large_flock {
+namespace flockmtl {
 namespace core {
 
 template <typename T>
@@ -66,7 +66,7 @@ inline std::vector<std::string> ConstructPrompts(std::vector<nlohmann::json> &un
     inja::Environment env;
 
     auto query_result = con.Query(
-        "SELECT prompt FROM lf_config.LARGE_FLOCK_PROMPT_INTERNAL_TABLE WHERE prompt_name = '" + prompt_name + "'");
+        "SELECT prompt FROM flockmtl_config.FLOCKMTL_PROMPT_INTERNAL_TABLE WHERE prompt_name = '" + prompt_name + "'");
 
     if (query_result->RowCount() == 0) {
         throw std::runtime_error("Prompt not found");
@@ -111,8 +111,9 @@ static void LlmCompleteJsonScalarFunction(DataChunk &args, ExpressionState &stat
     CoreScalarParsers::LlmCompleteJsonScalarParser(args);
 
     auto model = args.data[1].GetValue(0).ToString();
-    auto query_result = con.Query(
-        "SELECT model, max_tokens FROM lf_config.LARGE_FLOCK_MODEL_INTERNAL_TABLE WHERE model_name = '" + model + "'");
+    auto query_result =
+        con.Query("SELECT model, max_tokens FROM flockmtl_config.FLOCKMTL_MODEL_INTERNAL_TABLE WHERE model_name = '" +
+                  model + "'");
 
     if (query_result->RowCount() == 0) {
         throw std::runtime_error("Model not found");
@@ -156,4 +157,4 @@ void CoreScalarFunctions::RegisterLlmCompleteJsonScalarFunction(DatabaseInstance
 }
 
 } // namespace core
-} // namespace large_flock
+} // namespace flockmtl

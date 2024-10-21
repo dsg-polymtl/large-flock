@@ -1,10 +1,12 @@
-#include <large_flock/common.hpp>
-#include <large_flock/core/model_manager/model_manager.hpp>
-#include <large_flock/core/model_manager/openai.hpp>
-#include <large_flock_extension.hpp>
+#include <flockmtl/common.hpp>
+#include <flockmtl/core/model_manager/model_manager.hpp>
+#include <flockmtl/core/model_manager/openai.hpp>
+#include <flockmtl_extension.hpp>
 
-namespace large_flock {
+namespace flockmtl {
 namespace core {
+
+std::string ModelManager::OPENAI_API_KEY = "";
 
 nlohmann::json ModelManager::CallComplete(const std::string &prompt, const std::string &model,
                                           const nlohmann::json &settings, const bool json_response) {
@@ -19,14 +21,7 @@ nlohmann::json ModelManager::CallComplete(const std::string &prompt, const std::
                                     "gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-4, gpt-3.5-turbo.");
     }
 
-    // Get API key from the environment variable
-    const char *key = std::getenv("OPENAI_API_KEY");
-    if (!key) {
-        throw std::runtime_error("OPENAI_API_KEY environment variable is not set.");
-    } else {
-        openai::start(); // Assume it uses the environment variable if no API
-                         // key is provided
-    }
+    openai::start(ModelManager::OPENAI_API_KEY);
 
     // check if settings is not empty and has max_tokens and temperature else make some default values
     auto max_tokens = 4000;
@@ -132,4 +127,4 @@ nlohmann::json ModelManager::CallEmbedding(const std::string &input, const std::
 }
 
 } // namespace core
-} // namespace large_flock
+} // namespace flockmtl
